@@ -2,6 +2,8 @@ package montafra.beam.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,10 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import montafra.beam.R
+import montafra.beam.ui.theme.LocalCardSpacing
 
 /**
  * Shared scaffold for settings screens: Android 16 Settings style large top bar
@@ -69,13 +73,21 @@ fun SettingsScaffold(
             )
         },
     ) { padding ->
+        val layoutDirection = LocalLayoutDirection.current
         LazyColumn(
+            // Only the top inset is layout padding; the nav-bar inset is folded into
+            // contentPadding so rows scroll under the transparent gesture pill.
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(top = padding.calculateTopPadding()),
             state = listState,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = contentPadding,
+            verticalArrangement = Arrangement.spacedBy(LocalCardSpacing.current.group),
+            contentPadding = PaddingValues(
+                start = contentPadding.calculateStartPadding(layoutDirection),
+                end = contentPadding.calculateEndPadding(layoutDirection),
+                top = contentPadding.calculateTopPadding(),
+                bottom = contentPadding.calculateBottomPadding() + padding.calculateBottomPadding(),
+            ),
         ) { content() }
     }
 }

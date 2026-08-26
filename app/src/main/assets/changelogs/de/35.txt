@@ -1,0 +1,5 @@
+1.9.4
+• Neue Option „Kartenabstand“ in den Design-Einstellungen hinzugefügt
+• Verhalten einiger Schriftarten korrigiert
+• Behoben, dass „Bildschirm-Einschaltzeit“ gelegentlich falsche Informationen anzeigte
+• Systemnavigationsleisten sind jetzt transparent

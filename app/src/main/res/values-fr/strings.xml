@@ -29,6 +29,11 @@
     <string name="themeModeLight">Clair</string>
     <string name="themeModeDark">Sombre</string>
     <string name="themeModeOled">OLED</string>
+    <string name="cardSpacing">Espacement des cartes</string>
+    <string name="cardSpacingCompact">Compact</string>
+    <string name="cardSpacingMedium">Moyen</string>
+    <string name="cardSpacingRoomy">Spacieux</string>
+    <string name="cardSpacingDesc">Densité des espaces et des coins entre les cartes</string>
     <string name="currentScalar">Solution d\'échelle de puissance</string>
     <string name="currentScalarDesc">Lorsque l\'appareil n\'est pas branché, modifie cette échelle jusqu\'à ce que \u0022Puissance\u0022 soit supérieure à 0W, mais inférieure à environ 10W.</string>
     <string name="invertCurrent">Inverser l\'indicateur de charge</string>

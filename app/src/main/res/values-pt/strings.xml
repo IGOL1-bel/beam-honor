@@ -29,6 +29,11 @@
     <string name="themeModeLight">Claro</string>
     <string name="themeModeDark">Escuro</string>
     <string name="themeModeOled">OLED</string>
+    <string name="cardSpacing">Espaçamento dos cartões</string>
+    <string name="cardSpacingCompact">Compacto</string>
+    <string name="cardSpacingMedium">Médio</string>
+    <string name="cardSpacingRoomy">Amplo</string>
+    <string name="cardSpacingDesc">Densidade dos espaços e cantos entre os cartões</string>
     <string name="currentScalar">Ajuste de escala de potência</string>
     <string name="currentScalarDesc">Quando desconectado da carga, ajuste este valor até que \u0022Potência\u0022 seja maior que 0W, mas menor que cerca de 10W.</string>
     <string name="invertCurrent">Inverter indicador de carga</string>

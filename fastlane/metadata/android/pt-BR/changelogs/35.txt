@@ -1,0 +1,4 @@
+• Adicionada a nova opção "Espaçamento dos cartões" nas configurações de Tema
+• Corrigido o comportamento de algumas fontes
+• Corrigido o "Tempo de tela" que às vezes mostrava informações incorretas
+• As barras de navegação do sistema agora são transparentes

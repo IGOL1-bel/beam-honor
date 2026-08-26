@@ -87,7 +87,7 @@ class Battery(private val ctx: Context) {
             level = level.div(levelScale),
             invertCurrent = invertCurrent,
             isChargingRaw = mgr.isCharging,
-            plugType = PlugType.fromRaw(prop(BatteryManager.EXTRA_PLUGGED, batteryIntent)?.toInt()),
+            pluggedRaw = prop(BatteryManager.EXTRA_PLUGGED, batteryIntent),
             tempRaw = prop(BatteryManager.EXTRA_TEMPERATURE, batteryIntent),
             voltsRaw = prop(BatteryManager.EXTRA_VOLTAGE, batteryIntent),
         )

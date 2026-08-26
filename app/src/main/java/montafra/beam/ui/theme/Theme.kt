@@ -24,9 +24,10 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import montafra.beam.BeamFont
 import montafra.beam.settingsName
 
-data class ThemePrefs(val mode: String = "system", val customColor: Int? = null, val fontFamily: String = "default", val outlineOnlyCards: Boolean = false)
+data class ThemePrefs(val mode: String = "system", val customColor: Int? = null, val fontFamily: String = "default", val outlineOnlyCards: Boolean = false, val cardSpacing: CardSpacing = CardSpacing.Compact)
 
 private fun hsvColor(hue: Float, sat: Float, value: Float): Color =
     Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, sat, value)))
@@ -82,6 +83,9 @@ private fun seedColorScheme(seed: Color, isDark: Boolean): ColorScheme {
     )
 }
 
+/** Every pref [ThemePrefs] is built from - a key missing here just won't recompose the UI. */
+private val themeKeys = setOf("themeMode", "themeColorValue", "fontFamily", "outlineOnlyCards", "cardSpacing")
+
 @Composable
 fun rememberThemePrefs(): State<ThemePrefs> {
     val context = LocalContext.current
@@ -93,6 +97,7 @@ fun rememberThemePrefs(): State<ThemePrefs> {
             customColor = p.getInt("themeColorValue", 0xFF43A047.toInt()).takeIf { it != -1 },
             fontFamily = p.getString("fontFamily", "default") ?: "default",
             outlineOnlyCards = p.getBoolean("outlineOnlyCards", false),
+            cardSpacing = CardSpacing.forKey(p.getString("cardSpacing", null)),
         )
     }
 
@@ -101,7 +106,7 @@ fun rememberThemePrefs(): State<ThemePrefs> {
     DisposableEffect(Unit) {
         val prefs = context.getSharedPreferences(settingsName, Context.MODE_PRIVATE)
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == "themeMode" || key == "themeColorValue" || key == "fontFamily" || key == "outlineOnlyCards") state.value = read()
+            if (key in themeKeys) state.value = read()
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)
         onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
@@ -146,12 +151,22 @@ fun BeamTheme(prefs: ThemePrefs, content: @Composable () -> Unit) {
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars =
-                colorScheme.surface.luminance() > 0.5f
+            // Both bars follow the app's own theme, not the system night config that
+            // enableEdgeToEdge() reads - otherwise a light app on a dark-mode device gets a white
+            // gesture pill on a white background, now that the bar has no scrim to hide it.
+            val lightBars = colorScheme.surface.luminance() > 0.5f
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = lightBars
+                isAppearanceLightNavigationBars = lightBars
+            }
         }
     }
 
-    CompositionLocalProvider(LocalOutlineOnlyCards provides prefs.outlineOnlyCards) {
+    CompositionLocalProvider(
+        LocalOutlineOnlyCards provides prefs.outlineOnlyCards,
+        LocalCardSpacing provides prefs.cardSpacing,
+        LocalBeamFont provides BeamFont.forKey(prefs.fontFamily),
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = typographyForFont(prefs.fontFamily),

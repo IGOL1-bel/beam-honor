@@ -29,6 +29,11 @@
     <string name="themeModeLight">Jasny</string>
     <string name="themeModeDark">Ciemny</string>
     <string name="themeModeOled">OLED</string>
+    <string name="cardSpacing">Odstępy między kartami</string>
+    <string name="cardSpacingCompact">Kompaktowe</string>
+    <string name="cardSpacingMedium">Średnie</string>
+    <string name="cardSpacingRoomy">Przestronne</string>
+    <string name="cardSpacingDesc">Gęstość odstępów i zaokrągleń między kartami</string>
     <string name="currentScalar">Korekta skali mocy</string>
     <string name="currentScalarDesc">Gdy telefon nie jest podłączony do ładowarki, zmieniaj tę wartość, aż „Moc” będzie większa niż 0W, ale mniejsza niż około 10W.</string>
     <string name="invertCurrent">Odwróć wskaźnik ładowania</string>

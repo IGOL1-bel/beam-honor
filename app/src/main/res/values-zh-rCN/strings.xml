@@ -29,6 +29,11 @@
     <string name="themeModeLight">浅色</string>
     <string name="themeModeDark">深色</string>
     <string name="themeModeOled">OLED</string>
+    <string name="cardSpacing">卡片间距</string>
+    <string name="cardSpacingCompact">紧凑</string>
+    <string name="cardSpacingMedium">适中</string>
+    <string name="cardSpacingRoomy">宽松</string>
+    <string name="cardSpacingDesc">卡片之间的间距与圆角密度</string>
     <string name="currentScalar">功率系数</string>
     <string name="currentScalarDesc">未插电时，调整此系数直到 \u0022功率\u0022 大于 0W 但小于约 10W。</string>
     <string name="invertCurrent">反转充电指示</string>

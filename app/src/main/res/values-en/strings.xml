@@ -30,6 +30,11 @@
     <string name="themeModeLight">Light</string>
     <string name="themeModeDark">Dark</string>
     <string name="themeModeOled">OLED</string>
+    <string name="cardSpacing">Card Spacing</string>
+    <string name="cardSpacingCompact">Compact</string>
+    <string name="cardSpacingMedium">Medium</string>
+    <string name="cardSpacingRoomy">Roomy</string>
+    <string name="cardSpacingDesc">Density of the gaps and corners between cards</string>
     <string name="currentScalar">Power Scalar Workaround</string>
     <string name="currentScalarDesc">When not plugged in, change this scalar until \u0022Power\u0022 is greater than 0W, but less than about 10W.</string>
     <string name="invertCurrent">Invert Charging Indicator</string>

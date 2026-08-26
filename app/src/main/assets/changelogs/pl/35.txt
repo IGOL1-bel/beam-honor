@@ -1,0 +1,5 @@
+1.9.4
+• Dodano nową opcję „Odstępy między kartami” w ustawieniach Motywu
+• Naprawiono zachowanie niektórych czcionek
+• Naprawiono „Czas włączonego ekranu”, który czasami pokazywał błędne informacje
+• Systemowe paski nawigacji są teraz przezroczyste

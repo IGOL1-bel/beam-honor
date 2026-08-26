@@ -29,6 +29,11 @@
     <string name="themeModeLight">Chiaro</string>
     <string name="themeModeDark">Scuro</string>
     <string name="themeModeOled">OLED</string>
+    <string name="cardSpacing">Spaziatura schede</string>
+    <string name="cardSpacingCompact">Compatta</string>
+    <string name="cardSpacingMedium">Media</string>
+    <string name="cardSpacingRoomy">Ampia</string>
+    <string name="cardSpacingDesc">Densità degli spazi e degli angoli tra le schede</string>
     <string name="currentScalar">Soluzione scala potenza</string>
     <string name="currentScalarDesc">Quando non è in carica, modifica questa scala finché la \u0022Potenza\u0022 non è maggiore di 0W ma minore di circa 10W.</string>
     <string name="invertCurrent">Inverti indicatore di carica</string>
