@@ -24,6 +24,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,7 +32,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -96,6 +96,12 @@ import montafra.beam.R
 import montafra.beam.VendorBatteryHints
 import montafra.beam.settingsName
 import montafra.beam.ui.theme.BeamCard
+import montafra.beam.ui.theme.HomeCardGap
+import montafra.beam.ui.theme.LocalCardSpacing
+import montafra.beam.ui.theme.cardShapeBottom
+import montafra.beam.ui.theme.cardShapeMiddle
+import montafra.beam.ui.theme.cardShapeSingle
+import montafra.beam.ui.theme.cardShapeTop
 import montafra.beam.ui.theme.heroNumberFontFamily
 import montafra.beam.ui.theme.heroWeightFor
 
@@ -305,14 +311,21 @@ fun MainScreen(navController: BeamNavController, vm: BatteryViewModel = viewMode
             },
         ) { padding ->
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                // Top inset stays layout padding (the TopAppBar is transparent, content must not
+                // slide under it); the nav-bar inset goes into contentPadding so cards scroll
+                // beneath the gesture pill instead of stopping above it.
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = padding.calculateTopPadding())
+                    .padding(horizontal = 16.dp),
+                contentPadding = PaddingValues(bottom = padding.calculateBottomPadding()),
+                verticalArrangement = Arrangement.spacedBy(LocalCardSpacing.current.homeGroup),
             ) {
                 item { Spacer(Modifier.height(4.dp)) }
                 item {
                     Box(modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(40.dp))
+                        .clip(cardShapeSingle(radius = 40.dp))
                     ) {
                         val glowMod = Modifier.matchParentSize().let { m ->
                             if (Build.VERSION.SDK_INT >= 31) m.graphicsLayer {
@@ -381,10 +394,14 @@ fun MainScreen(navController: BeamNavController, vm: BatteryViewModel = viewMode
                         HeroCard(data, showChargeLevel.value, fontKey.value)
                     }
                 }
+                // Deliberate extra break between the hero and the metrics, on top of the two
+                // homeGroup gaps this spacer item sits between. Fixed, so the hero stays visually
+                // detached from the metric group at every Card Spacing setting.
                 item { Spacer(Modifier.height(8.dp)) }
                 item {
+                    val homeSeam = LocalCardSpacing.current.homeInner
                     MetricCard(
-                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 10.dp, bottomEnd = 10.dp),
+                        shape = cardShapeTop(radius = 24.dp, seam = homeSeam),
                     ) {
                         MetricRow(stringResource(R.string.power), data.power)
                         MetricRow(stringResource(R.string.current), data.current)
@@ -392,9 +409,9 @@ fun MainScreen(navController: BeamNavController, vm: BatteryViewModel = viewMode
                         MetricRow(stringResource(R.string.temperature), data.temperature)
                         MetricRow(stringResource(R.string.energy), data.energy)
                     }
-                    Spacer(Modifier.height(6.dp))
+                    HomeCardGap()
                     MetricCard(
-                        shape = RoundedCornerShape(10.dp),
+                        shape = cardShapeMiddle(seam = homeSeam),
                     ) {
                         val rows = listOf(
                             stringResource(R.string.chargeLevel) to data.chargeLevel,
@@ -404,9 +421,9 @@ fun MainScreen(navController: BeamNavController, vm: BatteryViewModel = viewMode
                         ).filter { (_, v) -> v != "-" }
                         rows.forEach { (label, value) -> MetricRow(label, value) }
                     }
-                    Spacer(Modifier.height(6.dp))
+                    HomeCardGap()
                     MetricCard(
-                        shape = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp, bottomStart = 24.dp, bottomEnd = 24.dp),
+                        shape = cardShapeBottom(radius = 24.dp, seam = homeSeam),
                     ) {
                         MetricRow(stringResource(R.string.screenTime), data.screenTime)
                     }
@@ -596,7 +613,7 @@ private fun HeroCard(data: BatteryData, showChargeLevel: Boolean, fontKey: Strin
         modifier = Modifier
             .fillMaxWidth()
             .onGloballyPositioned { cardCoords = it },
-        shape = RoundedCornerShape(40.dp),
+        shape = cardShapeSingle(radius = 40.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.45f),
     ) {
         Column(
@@ -679,7 +696,7 @@ private fun HeroCard(data: BatteryData, showChargeLevel: Boolean, fontKey: Strin
             // feeds both the family and the style so they can't disagree.
             val numberWeight = heroWeightFor(fontKey, tapWeight.value.roundToInt())
             val heroStyle = MaterialTheme.typography.displayLarge.copy(
-                fontFamily = heroNumberFontFamily(fontKey, numberWeight),
+                fontFamily = heroNumberFontFamily(context, fontKey, numberWeight),
                 fontWeight = FontWeight(numberWeight),
             )
             Row(
@@ -762,7 +779,7 @@ private fun HeroCard(data: BatteryData, showChargeLevel: Boolean, fontKey: Strin
 
 @Composable
 private fun MetricCard(
-    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(24.dp),
+    shape: androidx.compose.ui.graphics.Shape = cardShapeSingle(radius = 24.dp),
     content: @Composable () -> Unit,
 ) {
     BeamCard(

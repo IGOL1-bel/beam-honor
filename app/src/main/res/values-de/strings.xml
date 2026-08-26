@@ -29,6 +29,11 @@
     <string name="themeModeLight">Hell</string>
     <string name="themeModeDark">Dunkel</string>
     <string name="themeModeOled">OLED</string>
+    <string name="cardSpacing">Kartenabstand</string>
+    <string name="cardSpacingCompact">Kompakt</string>
+    <string name="cardSpacingMedium">Mittel</string>
+    <string name="cardSpacingRoomy">Großzügig</string>
+    <string name="cardSpacingDesc">Dichte der Abstände und Ecken zwischen Karten</string>
     <string name="currentScalar">Leistungsskala-Workaround</string>
     <string name="currentScalarDesc">Wenn nicht angeschlossen, ändere diesen Skalar, bis \u0022Leistung\u0022 größer als 0W, aber kleiner als etwa 10W ist.</string>
     <string name="invertCurrent">Ladeanzeige umkehren</string>

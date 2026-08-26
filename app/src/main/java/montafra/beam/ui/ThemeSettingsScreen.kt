@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,6 +45,12 @@ import montafra.beam.applyNightMode
 import montafra.beam.settingsName
 import montafra.beam.settingsUpdateInd
 import montafra.beam.ui.theme.BeamCard
+import montafra.beam.ui.theme.CardGap
+import montafra.beam.ui.theme.CardSpacing
+import montafra.beam.ui.theme.LocalCardSpacing
+import montafra.beam.ui.theme.cardShapeBottom
+import montafra.beam.ui.theme.cardShapeMiddle
+import montafra.beam.ui.theme.cardShapeTop
 import montafra.beam.ui.theme.fontFamilyFor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -95,7 +100,7 @@ fun ThemeSettingsScreen(navController: BeamNavController) {
                         )
                     }
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(LocalCardSpacing.current.group))
                 SubLabel(stringResource(R.string.themeColor))
                 Spacer(Modifier.height(8.dp))
                 val colorOptions = listOf(
@@ -145,13 +150,13 @@ fun ThemeSettingsScreen(navController: BeamNavController) {
                 val fontLabels = listOf(stringResource(R.string.fontDefault)) + BeamFont.entries.map { it.label }
                 // Each entry previews itself, so the families are built once rather than on
                 // every recomposition of the row and of every open menu item.
-                val fontFamilies = remember { fontKeys.map { fontFamilyFor(it) } }
+                val fontFamilies = remember(context) { fontKeys.map { fontFamilyFor(context, it) } }
                 var fontMenuExpanded by remember { mutableStateOf(false) }
                 val selectedFontIndex = fontKeys.indexOf(fontFamily).takeIf { it >= 0 } ?: 0
                 val selectedFontLabel = fontLabels[selectedFontIndex]
                 BeamCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+                    shape = cardShapeTop(),
                 ) {
                     Row(
                         modifier = Modifier
@@ -210,8 +215,8 @@ fun ThemeSettingsScreen(navController: BeamNavController) {
                         }
                     }
                 }
-                Spacer(Modifier.height(4.dp))
-                BeamCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(4.dp)) {
+                CardGap()
+                BeamCard(modifier = Modifier.fillMaxWidth(), shape = cardShapeMiddle()) {
                     ThemeToggleRow(
                         title = stringResource(R.string.outlinedCards),
                         description = stringResource(R.string.outlinedCardsDesc),
@@ -222,8 +227,36 @@ fun ThemeSettingsScreen(navController: BeamNavController) {
                         },
                     )
                 }
-                Spacer(Modifier.height(4.dp))
-                BeamCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(4.dp)) {
+                CardGap()
+                BeamCard(modifier = Modifier.fillMaxWidth(), shape = cardShapeMiddle()) {
+                    // The CompositionLocal is the single source of truth, so the row can never
+                    // disagree with the spacing the screen below it is actually drawing.
+                    val spacing = LocalCardSpacing.current
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+                        Text(stringResource(R.string.cardSpacing), style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            stringResource(R.string.cardSpacingDesc),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                            CardSpacing.entries.forEachIndexed { i, option ->
+                                SegmentedButton(
+                                    selected = spacing == option,
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        prefs.edit().putString("cardSpacing", option.key).commit()
+                                    },
+                                    shape = SegmentedButtonDefaults.itemShape(i, CardSpacing.entries.size),
+                                    label = { Text(stringResource(option.labelRes)) },
+                                )
+                            }
+                        }
+                    }
+                }
+                CardGap()
+                BeamCard(modifier = Modifier.fillMaxWidth(), shape = cardShapeMiddle()) {
                     ThemeToggleRow(
                         title = stringResource(R.string.hapticsEnabled),
                         description = stringResource(R.string.hapticsEnabledDesc),
@@ -234,10 +267,10 @@ fun ThemeSettingsScreen(navController: BeamNavController) {
                         },
                     )
                 }
-                Spacer(Modifier.height(4.dp))
+                CardGap()
                 BeamCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 20.dp, bottomEnd = 20.dp),
+                    shape = cardShapeBottom(),
                 ) {
                     ThemeToggleRow(
                         title = stringResource(R.string.soundEnabled),
@@ -255,7 +288,7 @@ fun ThemeSettingsScreen(navController: BeamNavController) {
                 Spacer(Modifier.height(8.dp))
                 BeamCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+                    shape = cardShapeTop(),
                 ) {
                     ThemeToggleRow(
                         title = stringResource(R.string.heroBacklight),
@@ -267,8 +300,8 @@ fun ThemeSettingsScreen(navController: BeamNavController) {
                         },
                     )
                 }
-                Spacer(Modifier.height(4.dp))
-                BeamCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(4.dp)) {
+                CardGap()
+                BeamCard(modifier = Modifier.fillMaxWidth(), shape = cardShapeMiddle()) {
                     ThemeToggleRow(
                         title = stringResource(R.string.chargeLevel),
                         description = stringResource(R.string.heroChargeLevelDesc),
@@ -279,10 +312,10 @@ fun ThemeSettingsScreen(navController: BeamNavController) {
                         },
                     )
                 }
-                Spacer(Modifier.height(4.dp))
+                CardGap()
                 BeamCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 20.dp, bottomEnd = 20.dp),
+                    shape = cardShapeBottom(),
                 ) {
                     ThemeToggleRow(
                         title = stringResource(R.string.keepScreenOn),

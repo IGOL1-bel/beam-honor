@@ -29,6 +29,11 @@
     <string name="themeModeLight">Светлая</string>
     <string name="themeModeDark">Тёмная</string>
     <string name="themeModeOled">OLED</string>
+    <string name="cardSpacing">Отступы между карточками</string>
+    <string name="cardSpacingCompact">Компактные</string>
+    <string name="cardSpacingMedium">Средние</string>
+    <string name="cardSpacingRoomy">Просторные</string>
+    <string name="cardSpacingDesc">Плотность отступов и скругления между карточками</string>
     <string name="currentScalar">Множитель мощности</string>
     <string name="currentScalarDesc">При отключённой зарядке, изменяйте этот множитель, пока значение \u0022Мощность\u0022 не станет больше 0 Вт, но меньше 10 Вт.</string>
     <string name="invertCurrent">Инвертировать значение силы тока при зарядке</string>

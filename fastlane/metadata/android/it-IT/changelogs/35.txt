@@ -1,0 +1,4 @@
+• Aggiunta la nuova opzione "Spaziatura schede" nelle impostazioni del Tema
+• Corretto il comportamento di alcuni font
+• Corretto "Schermo acceso da" che in alcuni casi mostrava informazioni errate
+• Le barre di navigazione di sistema ora sono trasparenti

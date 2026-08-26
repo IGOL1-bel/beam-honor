@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -38,6 +37,12 @@ import montafra.beam.R
 import montafra.beam.settingsName
 import montafra.beam.settingsUpdateInd
 import montafra.beam.ui.theme.BeamCard
+import montafra.beam.ui.theme.CardGap
+import montafra.beam.ui.theme.LocalCardSpacing
+import montafra.beam.ui.theme.cardShapeBottom
+import montafra.beam.ui.theme.cardShapeMiddle
+import montafra.beam.ui.theme.cardShapeSingle
+import montafra.beam.ui.theme.cardShapeTop
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,7 +81,7 @@ fun NotificationSettingsScreen(navController: BeamNavController) {
             item {
                 BeamCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = cardShapeSingle(),
                 ) {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.alarms)) },
@@ -122,7 +127,7 @@ fun NotificationSettingsScreen(navController: BeamNavController) {
                         )
                     }
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(LocalCardSpacing.current.group))
                 SubLabel(stringResource(R.string.statusBarIndicator))
                 Spacer(Modifier.height(8.dp))
                 MultiChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
@@ -147,7 +152,7 @@ fun NotificationSettingsScreen(navController: BeamNavController) {
             item {
                 BeamCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+                    shape = cardShapeTop(radius = 16.dp),
                 ) {
                     ToggleSettingRow(
                         title = stringResource(R.string.showTimeToFull),
@@ -162,10 +167,10 @@ fun NotificationSettingsScreen(navController: BeamNavController) {
                         },
                     )
                 }
-                Spacer(Modifier.height(4.dp))
+                CardGap()
                 BeamCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(4.dp),
+                    shape = cardShapeMiddle(),
                 ) {
                     ToggleSettingRow(
                         title = stringResource(R.string.screenTime),
@@ -180,10 +185,10 @@ fun NotificationSettingsScreen(navController: BeamNavController) {
                         },
                     )
                 }
-                Spacer(Modifier.height(4.dp))
+                CardGap()
                 BeamCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp),
+                    shape = cardShapeBottom(radius = 16.dp),
                 ) {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.systemNotificationSettings)) },

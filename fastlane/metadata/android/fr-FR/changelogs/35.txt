@@ -1,0 +1,4 @@
+• Ajout de la nouvelle option « Espacement des cartes » dans les paramètres de Thème
+• Correction du comportement de certaines polices
+• Correction du « Temps d’écran allumé » qui affichait parfois des informations erronées
+• Les barres de navigation du système sont désormais transparentes
