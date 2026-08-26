@@ -1,0 +1,5 @@
+1.9.4
+• Added new "Card Spacing" option in theme settings
+• Fixed some fonts' behaviour
+• Fixed "Screen Time" reporting wrong information on certain occasions
+• System navbars are now transparent

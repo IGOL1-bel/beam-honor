@@ -1,0 +1,5 @@
+1.9.4
+• Añadida la nueva opción «Espaciado de tarjetas» en los ajustes de Tema
+• Corregido el comportamiento de algunas fuentes
+• Corregido «Tiempo de pantalla encendida», que a veces mostraba información incorrecta
+• Las barras de navegación del sistema ahora son transparentes

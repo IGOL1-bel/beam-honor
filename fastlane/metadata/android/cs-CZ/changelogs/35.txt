@@ -1,0 +1,4 @@
+• Přidána nová možnost „Rozestupy karet“ v nastavení Motivu
+• Opraveno chování některých písem
+• Opravena „Doba zapnuté obrazovky“, která občas zobrazovala nesprávné informace
+• Systémové navigační lišty jsou nyní průhledné
