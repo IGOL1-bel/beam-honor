@@ -8,6 +8,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,7 +17,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
@@ -45,6 +45,11 @@ import montafra.beam.cToF
 import montafra.beam.settingsName
 import montafra.beam.settingsUpdateInd
 import montafra.beam.ui.theme.BeamCard
+import montafra.beam.ui.theme.CardGap
+import montafra.beam.ui.theme.cardShapeBottom
+import montafra.beam.ui.theme.cardShapeMiddle
+import montafra.beam.ui.theme.cardShapeTop
+import montafra.beam.ui.theme.rememberCardInteraction
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -106,7 +111,7 @@ fun AlarmsSettingsScreen(navController: BeamNavController) {
         }
         item {
             AlarmCard(
-                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+                shape = cardShapeTop(),
                 title = stringResource(R.string.alarmLow),
                 description = stringResource(R.string.alarmLowDesc),
                 enabled = lowEnabled,
@@ -121,9 +126,9 @@ fun AlarmsSettingsScreen(navController: BeamNavController) {
                 onRepeatChange = { lowRepeat = it; saveAlarms() },
                 haptic = haptic,
             )
-            Spacer(Modifier.height(4.dp))
+            CardGap()
             AlarmCard(
-                shape = RoundedCornerShape(4.dp),
+                shape = cardShapeMiddle(),
                 title = stringResource(R.string.alarmHigh),
                 description = stringResource(R.string.alarmHighDesc),
                 enabled = highEnabled,
@@ -138,9 +143,9 @@ fun AlarmsSettingsScreen(navController: BeamNavController) {
                 onRepeatChange = { highRepeat = it; saveAlarms() },
                 haptic = haptic,
             )
-            Spacer(Modifier.height(4.dp))
+            CardGap()
             AlarmCard(
-                shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 20.dp, bottomEnd = 20.dp),
+                shape = cardShapeBottom(),
                 title = stringResource(R.string.alarmTemp),
                 description = stringResource(R.string.alarmTempDesc),
                 enabled = tempEnabled,
@@ -243,7 +248,10 @@ private fun AlarmCard(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
+                            .clickable(
+                                interactionSource = rememberCardInteraction(),
+                                indication = LocalIndication.current,
+                            ) {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 onRepeatChange(!repeat)
                             },

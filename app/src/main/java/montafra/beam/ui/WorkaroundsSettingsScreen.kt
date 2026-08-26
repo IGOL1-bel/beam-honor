@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Slider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -53,9 +53,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import montafra.beam.BatteryViewModel
 import montafra.beam.R
 import montafra.beam.VendorBatteryHints
+import montafra.beam.intervalMs
 import montafra.beam.settingsName
 import montafra.beam.settingsUpdateInd
 import montafra.beam.ui.theme.BeamCard
+import montafra.beam.ui.theme.CardGap
+import montafra.beam.ui.theme.cardShapeBottom
+import montafra.beam.ui.theme.cardShapeMiddle
+import montafra.beam.ui.theme.cardShapeSingle
+import montafra.beam.ui.theme.cardShapeTop
+import montafra.beam.ui.theme.rememberCardInteraction
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -88,7 +95,9 @@ fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewM
     var invertCurrent by remember { mutableStateOf(prefs.getBoolean("invertCurrent", false)) }
     var useFahrenheit by remember { mutableStateOf(prefs.getBoolean("useFahrenheit", false)) }
     var pollIndex by remember {
-        mutableIntStateOf(pollIntervals.indexOf(prefs.getLong("pollIntervalMs", 1_750L)).coerceAtLeast(0))
+        // intervalMs is what StatusService falls back to; a different default here would just
+        // mislabel the rate the service is actually running at.
+        mutableIntStateOf(pollIntervals.indexOf(prefs.getLong("pollIntervalMs", intervalMs)).coerceAtLeast(0))
     }
 
     fun saveWorkarounds() {
@@ -138,7 +147,7 @@ fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewM
             item {
                 BeamCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = cardShapeSingle(),
                 ) {
                     Column {
                         ToggleSettingRow(
@@ -168,7 +177,7 @@ fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewM
             item {
                 BeamCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+                    shape = cardShapeTop(),
                 ) {
                     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
                         Row(
@@ -225,11 +234,11 @@ fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewM
                         }
                     }
                 }
-                Spacer(Modifier.height(4.dp))
+                CardGap()
                 val hasVendor = VendorBatteryHints.current != null
                 BeamCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(4.dp),
+                    shape = cardShapeMiddle(),
                 ) {
                     ToggleSettingRow(
                         title = stringResource(R.string.useFahrenheit),
@@ -241,13 +250,13 @@ fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewM
                         },
                     )
                 }
-                Spacer(Modifier.height(4.dp))
+                CardGap()
                 BeamCard(
                     modifier = Modifier.fillMaxWidth(),
                     shape = if (hasVendor)
-                        RoundedCornerShape(4.dp)
+                        cardShapeMiddle()
                     else
-                        RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 20.dp, bottomEnd = 20.dp),
+                        cardShapeBottom(),
                 ) {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.batteryUsage)) },
@@ -261,7 +270,10 @@ fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewM
                             )
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        modifier = Modifier.clickable {
+                        modifier = Modifier.clickable(
+                            interactionSource = rememberCardInteraction(),
+                            indication = LocalIndication.current,
+                        ) {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             try {
                                 // Battery usage screen (per-app breakdown); AOSP/Pixel only,
@@ -290,10 +302,10 @@ fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewM
                     )
                 }
                 if (hasVendor) {
-                    Spacer(Modifier.height(4.dp))
+                    CardGap()
                     BeamCard(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 20.dp, bottomEnd = 20.dp),
+                        shape = cardShapeBottom(),
                     ) {
                         ListItem(
                             headlineContent = { Text(stringResource(R.string.vendorBatteryTitle)) },
@@ -316,7 +328,10 @@ fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewM
                                 )
                             },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                            modifier = Modifier.clickable {
+                            modifier = Modifier.clickable(
+                                interactionSource = rememberCardInteraction(),
+                                indication = LocalIndication.current,
+                            ) {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 VendorBatteryHints.openVendorSettings(context)
                             },
@@ -333,7 +348,10 @@ fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewM
                                 )
                             },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                            modifier = Modifier.clickable {
+                            modifier = Modifier.clickable(
+                                interactionSource = rememberCardInteraction(),
+                                indication = LocalIndication.current,
+                            ) {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 try {
                                     context.startActivity(

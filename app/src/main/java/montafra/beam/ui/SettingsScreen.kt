@@ -19,6 +19,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -67,6 +68,13 @@ import montafra.beam.StatusService
 import montafra.beam.settingsName
 import montafra.beam.settingsUpdateInd
 import montafra.beam.ui.theme.BeamCard
+import montafra.beam.ui.theme.beamWeight
+import montafra.beam.ui.theme.CardGap
+import montafra.beam.ui.theme.cardShapeBottom
+import montafra.beam.ui.theme.cardShapeMiddle
+import montafra.beam.ui.theme.cardShapeSingle
+import montafra.beam.ui.theme.cardShapeTop
+import montafra.beam.ui.theme.rememberCardInteraction
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -148,7 +156,7 @@ fun SettingsScreen(navController: BeamNavController) {
                 Spacer(Modifier.height(8.dp))
                 BeamCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+                    shape = cardShapeTop(),
                 ) {
                     ToggleSettingRow(
                         title = stringResource(R.string.notification),
@@ -159,7 +167,7 @@ fun SettingsScreen(navController: BeamNavController) {
                         onHaptic = notificationToggleHaptic,
                     )
                 }
-                Spacer(Modifier.height(4.dp))
+                CardGap()
                 AnimatedVisibility(
                     visible = notificationEnabled,
                     enter = expandVertically(tween(300)) + fadeIn(tween(300)),
@@ -168,7 +176,7 @@ fun SettingsScreen(navController: BeamNavController) {
                     Column {
                         BeamCard(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(4.dp),
+                            shape = cardShapeMiddle(),
                         ) {
                             ListItem(
                                 headlineContent = { Text(stringResource(R.string.advancedSettings)) },
@@ -181,23 +189,22 @@ fun SettingsScreen(navController: BeamNavController) {
                                     )
                                 },
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                                modifier = Modifier.clickable {
+                                modifier = Modifier.clickable(
+                                    interactionSource = rememberCardInteraction(),
+                                    indication = LocalIndication.current,
+                                ) {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     navController.navigate("settings/notification")
                                 },
                             )
                         }
-                        Spacer(Modifier.height(4.dp))
+                        CardGap()
                     }
                 }
                 val showLanguage = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 BeamCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(
-                        topStart = 4.dp, topEnd = 4.dp,
-                        bottomStart = if (showLanguage) 4.dp else 20.dp,
-                        bottomEnd = if (showLanguage) 4.dp else 20.dp,
-                    ),
+                    shape = if (showLanguage) cardShapeMiddle() else cardShapeBottom(),
                 ) {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.theme)) },
@@ -211,17 +218,20 @@ fun SettingsScreen(navController: BeamNavController) {
                             )
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        modifier = Modifier.clickable {
+                        modifier = Modifier.clickable(
+                            interactionSource = rememberCardInteraction(),
+                            indication = LocalIndication.current,
+                        ) {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             navController.navigate("settings/theme")
                         },
                     )
                 }
                 if (showLanguage) {
-                    Spacer(Modifier.height(4.dp))
+                    CardGap()
                     BeamCard(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 20.dp, bottomEnd = 20.dp),
+                        shape = cardShapeBottom(),
                     ) {
                         ListItem(
                             headlineContent = { Text(stringResource(R.string.language)) },
@@ -235,7 +245,10 @@ fun SettingsScreen(navController: BeamNavController) {
                                 )
                             },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                            modifier = Modifier.clickable {
+                            modifier = Modifier.clickable(
+                                interactionSource = rememberCardInteraction(),
+                                indication = LocalIndication.current,
+                            ) {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 try {
                                     context.startActivity(
@@ -258,7 +271,7 @@ fun SettingsScreen(navController: BeamNavController) {
                 Spacer(Modifier.height(8.dp))
                 BeamCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = cardShapeSingle(),
                 ) {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.workarounds)) },
@@ -272,7 +285,10 @@ fun SettingsScreen(navController: BeamNavController) {
                             )
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        modifier = Modifier.clickable {
+                        modifier = Modifier.clickable(
+                            interactionSource = rememberCardInteraction(),
+                            indication = LocalIndication.current,
+                        ) {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             navController.navigate("settings/workarounds")
                         },
@@ -286,7 +302,7 @@ fun SettingsScreen(navController: BeamNavController) {
                 Spacer(Modifier.height(8.dp))
                 BeamCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+                    shape = cardShapeTop(),
                 ) {
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.supportMe)) },
@@ -299,16 +315,19 @@ fun SettingsScreen(navController: BeamNavController) {
                             )
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        modifier = Modifier.clickable {
+                        modifier = Modifier.clickable(
+                            interactionSource = rememberCardInteraction(),
+                            indication = LocalIndication.current,
+                        ) {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             showDonateDialog = true
                         },
                     )
                 }
-                Spacer(Modifier.height(4.dp))
+                CardGap()
                 BeamCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 20.dp, bottomEnd = 20.dp),
+                    shape = cardShapeBottom(),
                 ) {
                     ListItem(
                         headlineContent = { Text("Beam $version") },
@@ -321,7 +340,10 @@ fun SettingsScreen(navController: BeamNavController) {
                             )
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        modifier = Modifier.clickable {
+                        modifier = Modifier.clickable(
+                            interactionSource = rememberCardInteraction(),
+                            indication = LocalIndication.current,
+                        ) {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             showAppInfo = true
                         },
@@ -369,7 +391,7 @@ fun SettingsScreen(navController: BeamNavController) {
                         label = "Liberapay",
                         address = "liberapay.com/montafra",
                         clipboard = clipboardManager,
-                        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+                        shape = cardShapeTop(),
                         actionIconRes = R.drawable.ico_open_in_new,
                         actionContentDescRes = R.string.openInBrowser,
                         onActionClick = {
@@ -383,12 +405,12 @@ fun SettingsScreen(navController: BeamNavController) {
                             )
                         },
                     )
-                    Spacer(Modifier.height(4.dp))
-                    DonateCard("Bitcoin", "bc1q7v38g2xn7wxtwn6ewde4kydn5emjr3zt73ew96", clipboardManager, RoundedCornerShape(4.dp))
-                    Spacer(Modifier.height(4.dp))
-                    DonateCard("Monero", "876wwukGWhU9H6qez4Qmt5gTBBmdKzoDg3zvT33QCwjy9e7jS7MVjQySUCpNhoVrFcF15AicUJ4VaVrTKAXGMu5D7yUbqFs", clipboardManager, RoundedCornerShape(4.dp))
-                    Spacer(Modifier.height(4.dp))
-                    DonateCard("Lightning", "monta@cake.cash", clipboardManager, RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 20.dp, bottomEnd = 20.dp))
+                    CardGap()
+                    DonateCard("Bitcoin", "bc1q7v38g2xn7wxtwn6ewde4kydn5emjr3zt73ew96", clipboardManager, cardShapeMiddle())
+                    CardGap()
+                    DonateCard("Monero", "876wwukGWhU9H6qez4Qmt5gTBBmdKzoDg3zvT33QCwjy9e7jS7MVjQySUCpNhoVrFcF15AicUJ4VaVrTKAXGMu5D7yUbqFs", clipboardManager, cardShapeMiddle())
+                    CardGap()
+                    DonateCard("Lightning", "monta@cake.cash", clipboardManager, cardShapeBottom())
                 }
                 Spacer(Modifier.height(16.dp))
             }
@@ -418,7 +440,10 @@ fun SettingsScreen(navController: BeamNavController) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .clickable {
+                            .clickable(
+                                interactionSource = rememberCardInteraction(),
+                                indication = LocalIndication.current,
+                            ) {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 context.startActivity(
                                     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))
@@ -437,8 +462,7 @@ fun SettingsScreen(navController: BeamNavController) {
                     Spacer(Modifier.height(16.dp))
                     Text(
                         text = stringResource(R.string.app_name),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.headlineSmall.beamWeight(FontWeight.Bold),
                     )
                     Text(
                         text = "v$version",
@@ -483,12 +507,15 @@ fun SettingsScreen(navController: BeamNavController) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         BeamCard(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+                            shape = cardShapeTop(radius = 16.dp),
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable {
+                                    .clickable(
+                                        interactionSource = rememberCardInteraction(),
+                                        indication = LocalIndication.current,
+                                    ) {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         showAppInfo = false
                                         changelogEntries = loadChangelogs(context, 0, currentVersionCode)
@@ -517,10 +544,10 @@ fun SettingsScreen(navController: BeamNavController) {
                                 )
                             }
                         }
-                        Spacer(Modifier.height(4.dp))
+                        CardGap()
                         BeamCard(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(4.dp),
+                            shape = cardShapeMiddle(),
                         ) {
                             Row(
                                 modifier = Modifier
@@ -562,10 +589,10 @@ fun SettingsScreen(navController: BeamNavController) {
                                 )
                             }
                         }
-                        Spacer(Modifier.height(4.dp))
+                        CardGap()
                         BeamCard(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp),
+                            shape = cardShapeBottom(radius = 16.dp),
                         ) {
                             Row(
                                 modifier = Modifier
@@ -676,7 +703,7 @@ private fun DonateCard(
     label: String,
     address: String,
     clipboard: ClipboardManager,
-    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(20.dp),
+    shape: androidx.compose.ui.graphics.Shape = cardShapeSingle(),
     actionIconRes: Int = R.drawable.ico_copy,
     actionContentDescRes: Int = R.string.copy,
     onActionClick: (ClipboardManager) -> Unit = {

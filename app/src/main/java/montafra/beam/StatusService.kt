@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.graphics.*
 import android.graphics.drawable.Icon
 import android.os.Binder
@@ -34,6 +35,12 @@ class StatusService : Service() {
         private const val screenTimeBootSlackMs = 5_000L
         // Below this much session time the on-time share is noise, so it is left out.
         private const val screenTimeSessionMinMs = 60_000L
+        // Runtime state this service owns, deliberately kept out of the shared "settings" file.
+        // SharedPreferences holds one in-memory map per process and rewrites the whole file on
+        // every commit, so a settings write from the UI process restores every key it has not
+        // seen since that process started — which would be all of these. Private to the companion
+        // so nothing outside :batteryStatus can even name the file.
+        private const val stateName = "service-state"
         // Weight of the notification icon text, matching Typeface.DEFAULT_BOLD. Fonts whose
         // wght axis stops lower are clamped to their own ceiling.
         private const val iconWeight = 700
@@ -45,6 +52,13 @@ class StatusService : Service() {
     }
 
     private lateinit var battery: Battery
+    /**
+     * Screen-time and alarm bookkeeping, read and written only from :batteryStatus. MODE_PRIVATE
+     * is correct for a single-process file: the in-memory map is the only copy, so there is
+     * nothing to re-read from disk. Lazy because a Service field initialiser would run before the
+     * base context is attached.
+     */
+    private val state: SharedPreferences by lazy { getSharedPreferences(stateName, MODE_PRIVATE) }
     private var iconBitmap: Bitmap? = null
     // The typeface follows the selected app font and is (re)applied in loadSettings();
     // DEFAULT_BOLD is both the initial value and the fallback for the system font.
@@ -75,11 +89,15 @@ class StatusService : Service() {
     // Screen-time bookkeeping. Accumulated durations run off SystemClock.elapsedRealtime(),
     // which is monotonic and immune to NTP corrections and clock changes; only the session
     // baseline is wall clock, because it has to survive reboots. screenTimeOnStart is
-    // therefore meaningful only within the boot that wrote it — see loadSettings().
+    // therefore meaningful only within the boot that wrote it — see restoreServiceState().
     private var screenTimeSessionStart = 0L // wall clock, last unplug
     private var screenTimeOnTotal = 0L
     private var screenTimeOnStart = 0L      // elapsedRealtime, 0 when the screen is off
     private var screenTimeCheckpoint = 0L   // elapsedRealtime of the last flush to prefs
+    // Last plug state observed, persisted so an unplug that happened while this process was dead
+    // is still detectable. Null until a snapshot has told us, which is not the same as unplugged.
+    private var wasPlugged: Boolean? = null
+    private var stateRestored = false
     private var notificationEnabled = true
     private var useFahrenheit = false
     private var initialized = false
@@ -120,12 +138,11 @@ class StatusService : Service() {
                 }
                 Intent.ACTION_POWER_DISCONNECTED -> {
                     pluggedInAt = null
-                    screenTimeSessionStart = System.currentTimeMillis()
-                    screenTimeOnTotal = 0L
-                    screenTimeOnStart = 0L
-                    screenTimeCheckpoint = 0L
-                    if (screenInUse()) openScreenOnPeriod()
-                    persistScreenTime()
+                    // Recorded before the reset so the persist inside it stores the edge, and so
+                    // the syncPlugState() in update() below does not see the same edge a second
+                    // time once the sticky battery broadcast catches up.
+                    wasPlugged = false
+                    startScreenTimeSession()
                     update()
                 }
                 Intent.ACTION_SCREEN_OFF -> {
@@ -134,23 +151,25 @@ class StatusService : Service() {
                     task.stop()
                 }
                 Intent.ACTION_SCREEN_ON -> {
-                    // Only counts as screen time once the device is actually usable. On a locked
-                    // device that is ACTION_USER_PRESENT below, not this; on one with no keyguard
-                    // the two coincide and screenInUse() is already true here.
-                    if (screenInUse()) openScreenOnPeriod()
-                    persistScreenTime()
+                    // start() ticks synchronously, and update() -> reconcileScreenTime() opens the
+                    // period if the device is already past the keyguard. On a locked device that
+                    // happens at ACTION_USER_PRESENT below, or at the first tick after the
+                    // keyguard goes away.
                     task.start()
                 }
                 Intent.ACTION_USER_PRESENT -> {
-                    openScreenOnPeriod()
-                    persistScreenTime()
+                    // Only here to react without waiting for the next poll; reconcile decides, so
+                    // a device that still reports the keyguard as locked at this point is picked
+                    // up a tick later rather than credited from a screen that is not in use yet.
+                    reconcileScreenTime()
                 }
                 // Android does not send ACTION_SCREEN_OFF on the way down, so without this the
-                // open period would outlive the boot and loadSettings() would have to throw it
-                // away wholesale. Closing it here keeps the pre-shutdown on-time.
+                // open period would outlive the boot and restoreServiceState() would have to throw
+                // it away wholesale. Closing it here keeps the pre-shutdown on-time. The write has
+                // to block: apply() may not get to run before the process goes.
                 Intent.ACTION_SHUTDOWN -> {
                     closeScreenOnPeriod()
-                    persistScreenTime()
+                    persistScreenTime(sync = true)
                 }
             }
         }
@@ -184,22 +203,46 @@ class StatusService : Service() {
         alarmTempThreshold = settings.getInt("alarmTempThreshold", 40)
         alarmTempRepeat = settings.getBoolean("alarmTempRepeat", false)
         alarmRepeatIntervalMs = settings.getInt("alarmRepeatIntervalMin", 15) * 60_000L
-        alarmLowState.fired = settings.getBoolean("alarmLowFired", false)
-        alarmLowState.lastMs = settings.getLong("alarmLowLastMs", 0L)
-        alarmHighState.fired = settings.getBoolean("alarmHighFired", false)
-        alarmHighState.lastMs = settings.getLong("alarmHighLastMs", 0L)
-        alarmTempState.fired = settings.getBoolean("alarmTempFired", false)
-        alarmTempState.lastMs = settings.getLong("alarmTempLastMs", 0L)
-        screenTimeSessionStart = settings.getLong("screenTimeSessionStart", 0L)
-        screenTimeOnTotal = settings.getLong("screenTimeOnTotal", 0L)
-        screenTimeOnStart = settings.getLong("screenTimeOnStart", 0L)
+    }
+
+    /**
+     * Loads the state this service owns and repairs whatever the previous process left behind.
+     *
+     * Runs exactly once per process: this is recovery, not a reload. loadSettings() used to do it
+     * on every settings update and every onStartCommand — and onStartCommand fires on every app
+     * launch, every quick-settings tap and every START_STICKY redelivery — which threw the
+     * in-memory total away in favour of the last checkpoint and closed a perfectly good open
+     * period each time.
+     *
+     * Ordering: after init(), which creates the snapshot syncPlugState() reads, and after
+     * loadSettings(), which supplies the pollIntervalMs used in the recovery bound below.
+     */
+    private fun restoreServiceState() {
+        if (stateRestored) return
+        stateRestored = true
+
+        alarmLowState.fired = state.getBoolean("alarmLowFired", false)
+        alarmLowState.lastMs = state.getLong("alarmLowLastMs", 0L)
+        alarmHighState.fired = state.getBoolean("alarmHighFired", false)
+        alarmHighState.lastMs = state.getLong("alarmHighLastMs", 0L)
+        alarmTempState.fired = state.getBoolean("alarmTempFired", false)
+        alarmTempState.lastMs = state.getLong("alarmTempLastMs", 0L)
+
+        screenTimeSessionStart = state.getLong("screenTimeSessionStart", 0L)
+        screenTimeOnTotal = state.getLong("screenTimeOnTotal", 0L)
+        screenTimeOnStart = state.getLong("screenTimeOnStart", 0L)
         screenTimeCheckpoint = screenTimeOnStart
+        wasPlugged = when (state.getInt("screenTimePlugged", -1)) {
+            1    -> true
+            0    -> false
+            else -> null // never observed, which is not the same as "not plugged"
+        }
 
         // A persisted screenTimeOnStart is an elapsedRealtime value, so it only means anything
         // within the boot that wrote it. If the boot base moved (reboot, or a clock adjustment
         // large enough that we can no longer tell), or the value sits in the future, drop it:
         // crediting it would bill the entire powered-off gap as screen-on time.
-        val storedBootBase = settings.getLong("screenTimeBootBase", 0L)
+        val storedBootBase = state.getLong("screenTimeBootBase", 0L)
         if (screenTimeOnStart > 0L &&
             (storedBootBase == 0L ||
                 abs(bootBase() - storedBootBase) > screenTimeBootSlackMs ||
@@ -217,11 +260,15 @@ class StatusService : Service() {
         // Any period still open here was left by a process that is no longer running its poll
         // loop, so its age is only trustworthy up to one checkpoint plus a poll; beyond that the
         // screen may have gone off unobserved. Close it under that bound, then reopen from now if
-        // the screen is currently on. In a live process the period is always within the bound, so
-        // this is just an early checkpoint.
+        // the screen is currently on.
         closeScreenOnPeriod(screenTimeCheckpointMs + pollIntervalMs)
         if (screenInUse()) openScreenOnPeriod()
         persistScreenTime()
+
+        // Last, because it may decide the session restored above is already over: an unplug that
+        // happened while this process was dead leaves no broadcast behind, only a disagreement
+        // between the stored plug state and the current one.
+        syncPlugState()
     }
 
     /**
@@ -236,13 +283,52 @@ class StatusService : Service() {
 
     private fun bootBase() = System.currentTimeMillis() - SystemClock.elapsedRealtime()
 
-    private fun persistScreenTime() {
-        getSharedPreferences(settingsName, MODE_MULTI_PROCESS).edit {
+    /** [sync] forces a blocking write, for the shutdown path where apply() may not get to run. */
+    private fun persistScreenTime(sync: Boolean = false) {
+        state.edit(commit = sync) {
             putLong("screenTimeSessionStart", screenTimeSessionStart)
             putLong("screenTimeOnTotal", screenTimeOnTotal)
             putLong("screenTimeOnStart", screenTimeOnStart)
             putLong("screenTimeBootBase", bootBase())
+            // Tri-state: -1 is "never observed", which must not read back as "not plugged" or the
+            // first snapshot after an install would look like an unplug.
+            putInt("screenTimePlugged", when (wasPlugged) {
+                true  -> 1
+                false -> 0
+                null  -> -1
+            })
         }
+    }
+
+    /** Starts a fresh screen-time session: the counters run from this unplug onwards. */
+    private fun startScreenTimeSession() {
+        screenTimeSessionStart = System.currentTimeMillis()
+        screenTimeOnTotal = 0L
+        screenTimeOnStart = 0L
+        screenTimeCheckpoint = 0L
+        if (screenInUse()) openScreenOnPeriod()
+        persistScreenTime()
+    }
+
+    /**
+     * Detects the plugged -> unplugged edge and starts a new session on it.
+     *
+     * ACTION_POWER_DISCONNECTED only arrives while this process is alive with its receiver
+     * registered, and there is no manifest receiver, so on its own it drops every unplug that
+     * happens between service deaths — after which screenTimeOnTotal just keeps growing across
+     * charge cycles. Comparing the persisted plug state against the snapshot catches the edge
+     * regardless of who was running at the time, reboots included.
+     *
+     * This reads EXTRA_PLUGGED rather than snapshot.charging on purpose: charging is false for
+     * BATTERY_STATUS_NOT_CHARGING, which is what devices with charge limiting report while still
+     * plugged in, and resetting the session mid-charge is exactly the bug being fixed.
+     */
+    private fun syncPlugState() {
+        val plugged = snapshot.plugged ?: return // no plug state in the broadcast: not an edge
+        if (plugged == wasPlugged) return
+        val unplugged = wasPlugged == true && !plugged
+        wasPlugged = plugged
+        if (unplugged) startScreenTimeSession() else persistScreenTime()
     }
 
     /**
@@ -265,11 +351,32 @@ class StatusService : Service() {
     }
 
     /**
-     * Rebases the open period onto the persisted total every [screenTimeCheckpointMs], bounding
-     * both what a process kill can lose and how much of a stale period recovery has to trust.
+     * Brings the open/closed state of the screen-on period back in line with reality, then rebases
+     * an open period onto the persisted total every [screenTimeCheckpointMs].
+     *
+     * The broadcasts are only hints. ACTION_USER_PRESENT can arrive late, the keyguard can
+     * re-lock while the display stays on (the keepScreenOn option), the shade can be pulled down
+     * over the lock screen, and anything sent before this service started was missed outright —
+     * the screen broadcasts cannot be declared in the manifest, so there is no way to catch those.
+     * Deriving the state from screenInUse() on every tick makes a lost edge cost one poll interval
+     * instead of a whole session.
      */
-    private fun checkpointScreenTime() {
+    private fun reconcileScreenTime() {
+        val inUse = screenInUse()
+        if (inUse && screenTimeOnStart == 0L) {
+            openScreenOnPeriod()
+            persistScreenTime()
+            return
+        }
+        if (!inUse && screenTimeOnStart > 0L) {
+            closeScreenOnPeriod()
+            persistScreenTime()
+            return
+        }
         if (screenTimeOnStart == 0L) return
+
+        // Steady state: fold the in-flight period into the total now and then, so a process kill
+        // loses at most one checkpoint interval and recovery has a bound it can trust.
         val elapsed = SystemClock.elapsedRealtime()
         if (elapsed - screenTimeCheckpoint < screenTimeCheckpointMs) return
         screenTimeOnTotal += (elapsed - screenTimeOnStart).coerceAtLeast(0L)
@@ -365,6 +472,7 @@ class StatusService : Service() {
         super.onCreate()
         init()
         loadSettings()
+        restoreServiceState()
         task.start()
     }
 
@@ -520,7 +628,10 @@ class StatusService : Service() {
         debug("update()")
 
         snapshot = battery.snapshot()
-        checkpointScreenTime()
+        // Order matters: a session reset that ran after reconcile would zero the period reconcile
+        // had just opened and leave it closed until the next tick.
+        syncPlugState()
+        reconcileScreenTime()
         if (notificationEnabled) noteMgr.notify(noteId, buildNotification())
         checkAlarms()
         updateData()
@@ -631,7 +742,7 @@ class StatusService : Service() {
             .build()
 
     private fun persistAlarmState() {
-        getSharedPreferences(settingsName, MODE_MULTI_PROCESS).edit {
+        state.edit {
             putBoolean("alarmLowFired", alarmLowState.fired)
             putLong("alarmLowLastMs", alarmLowState.lastMs)
             putBoolean("alarmHighFired", alarmHighState.fired)

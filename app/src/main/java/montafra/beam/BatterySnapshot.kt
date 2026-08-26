@@ -13,7 +13,7 @@ class BatterySnapshot(
     val energyRaw: Long?,
     val level: Double?,
     val isChargingRaw: Boolean,
-    val plugType: PlugType?,
+    val pluggedRaw: Long?,
     val tempRaw: Long?,
     val voltsRaw: Long?,
 ) {
@@ -43,6 +43,13 @@ class BatterySnapshot(
     val levelPercent : Double? get() = level?.times(100.0)
 
     val celsius : Double? get() = tempRaw?.toDouble()?.div(10.0)
+
+    val plugType : PlugType? get() = PlugType.fromRaw(pluggedRaw?.toInt())
+
+    // Null when the battery broadcast carried no plug state at all. That is "don't know", not
+    // "not plugged", and the two must not be confused: acting on this resets the screen-time
+    // session. Kept separate from plugType, which folds "not plugged" into null as well.
+    val plugged : Boolean? get() = pluggedRaw?.let { it != 0L }
 
     // Prefer the OS-reported charge status; some devices misreport isCharging or the
     // current sign, so only fall back to those heuristics when the status is unknown.
