@@ -1,0 +1,6 @@
+• Wprowadzono motyw Material Expressive
+• Naprawiono kolorowanie kart w motywie OLED
+• Ogólne ulepszenia
+• Obsługa trybu poziomego
+• Zaktualizowano paletę kolorów
+• Zaktualizowano linki do darowizn

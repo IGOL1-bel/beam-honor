@@ -1,0 +1,7 @@
+2.0
+• Představen motiv Material Expressive
+• Opraveno zbarvení karet v motivu OLED
+• Obecná vylepšení
+• Podpora režimu na šířku
+• Aktualizována paleta barev
+• Aktualizovány odkazy na dary

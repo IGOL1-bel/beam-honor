@@ -1,0 +1,7 @@
+2.0
+• Introduced Material Expressive theming
+• Fixed card colouring on OLED theme
+• General improvements
+• Landscape mode support
+• Updated color swatch
+• Updated donation links
