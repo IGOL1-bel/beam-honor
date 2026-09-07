@@ -1,0 +1,7 @@
+2.0
+• Introduzido o tema Material Expressive
+• Corrigida a coloração dos cartões no tema OLED
+• Melhorias gerais
+• Suporte ao modo paisagem
+• Atualizada a paleta de cores
+• Atualizados os links de doação

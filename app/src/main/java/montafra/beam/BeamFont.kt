@@ -39,6 +39,12 @@ enum class BeamFont(
     }
 }
 
+/**
+ * The font a fresh install renders in. "default" is still an option in the picker - it means the
+ * system font - it just isn't the one Beam starts on any more.
+ */
+val defaultFontKey: String = BeamFont.Inter.key
+
 // The hero number's tap morph is authored as a sweep between these two weights.
 const val heroRestWeight = 700
 const val heroPressWeight = 200

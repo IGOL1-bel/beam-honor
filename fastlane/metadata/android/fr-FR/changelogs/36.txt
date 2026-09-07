@@ -1,0 +1,6 @@
+• Introduction du thème Material Expressive
+• Correction de la couleur des cartes avec le thème OLED
+• Améliorations générales
+• Prise en charge du mode paysage
+• Nuancier de couleurs mis à jour
+• Liens de don mis à jour

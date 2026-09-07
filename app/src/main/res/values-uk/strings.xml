@@ -24,6 +24,20 @@
     <string name="themeColor">Колір теми</string>
     <string name="themeColorAuto">Авто</string>
     <string name="themeColorCustom">Власний</string>
+    <string name="themeColorCustomPick">Власний колір</string>
+    <string name="themeColorPicker">Вибір кольору</string>
+    <string name="colorHex">Hex</string>
+    <string name="colorHue">Відтінок</string>
+    <string name="colorSaturation">Насиченість</string>
+    <string name="colorBrightness">Яскравість</string>
+    <string name="colorStyle">Стиль кольору</string>
+    <string name="colorStyleTonalSpot">Тональний</string>
+    <string name="colorStyleNeutral">Нейтральний</string>
+    <string name="colorStyleVibrant">Яскравий</string>
+    <string name="colorStyleExpressive">Виразний</string>
+    <string name="colorStyleRainbow">Райдуга</string>
+    <string name="colorStyleFruitSalad">Фруктовий салат</string>
+    <string name="colorStyleMonochrome">Монохромний</string>
     <string name="themeMode">Режим теми</string>
     <string name="themeModeSystem">Системний</string>
     <string name="themeModeLight">Світла</string>
@@ -45,6 +59,8 @@
     <string name="supportMe">Підтримати розробку</string>
     <string name="supportMeDesc">Допоможи підтримати мої проєкти 🐢</string>
     <string name="openInBrowser">Відкрити в браузері</string>
+    <string name="openInWallet">Відкрити в гаманці</string>
+    <string name="noWalletApp">Гаманець не знайдено, адресу скопійовано</string>
     <string name="copy">Копіювати</string>
     <string name="about">Про застосунок</string>
     <string name="language">Мова</string>
@@ -81,7 +97,7 @@
     <string name="soundEnabledDesc">Відтворювати клацання при дотику</string>
     <string name="whatsNew">Що нового</string>
     <string name="font">Шрифт</string>
-    <string name="fontDefault">Стандартний</string>
+    <string name="fontSystem">Системний</string>
     <string name="fontDesc">Шрифт, який використовується в усьому застосунку</string>
     <string name="widgetTempLabel">Температура акумулятора</string>
     <string name="versionLicenseLinks">Версія, ліцензія та посилання</string>
@@ -108,6 +124,7 @@
     <string name="alarms">Сигнали акумулятора</string>
     <string name="alarmsShortDesc">Сигнали про заряд і температуру</string>
     <string name="alarmsDesc">Отримуйте сповіщення, коли акумулятор досягає заданого рівня або температури. Сигнали працюють навіть із вимкненим екраном.</string>
+    <string name="alarmsNeedNotifications">Сповіщення заблоковано або сповіщення про стан вимкнено — сигнали зараз не можуть вас попередити.</string>
     <string name="alarmLow">Низький заряд</string>
     <string name="alarmLowDesc">Сповіщати, коли рівень знижується до цього відсотка та акумулятор не заряджається</string>
     <string name="alarmHigh">Цільовий заряд</string>

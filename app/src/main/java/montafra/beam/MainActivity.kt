@@ -24,8 +24,10 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
 import montafra.beam.ui.AlarmsSettingsScreen
+import montafra.beam.ui.ColorPickerScreen
 import montafra.beam.ui.LocalSilentHaptics
 import montafra.beam.ui.LocalSoundEnabled
+import montafra.beam.ui.LocalTapHaptics
 import montafra.beam.ui.MainScreen
 import montafra.beam.ui.NoOpHapticFeedback
 import montafra.beam.ui.NotificationSettingsScreen
@@ -48,6 +50,12 @@ const val alarmChannelId = "$namespace.alarms.v1"
 const val alarmLowNoteId = 2
 const val alarmHighNoteId = 3
 const val alarmTempNoteId = 4
+// Shared by StatusService and AlarmsSettingsScreen so the service can never disagree with the
+// value the settings screen displays.
+const val alarmLowDefaultThreshold = 20
+const val alarmHighDefaultThreshold = 85
+const val alarmTempDefaultThreshold = 40
+const val alarmRepeatDefaultMin = 15
 const val settingsName = "settings"
 const val settingsUpdateInd = "$namespace.settings-update-ind"
 
@@ -156,19 +164,24 @@ class MainActivity : ComponentActivity() {
             }
             val realHaptic = LocalHapticFeedback.current
             val view = LocalView.current
-            // Every haptic call site also gets the platform tap sound; the two are gated separately.
+            // The app's own tap call sites read LocalTapHaptics and get the platform tap sound on
+            // top of the haptic; the two are gated separately. LocalHapticFeedback itself is only
+            // gated, never given the sound channel: Compose/Material internals (text-selection
+            // handles, stepped-slider ticks) fire through it, and each of those would click.
             val tapFeedback = remember(realHaptic, view, hapticsEnabled.value, soundEnabled.value) {
                 TapFeedback(
                     haptics = realHaptic.takeIf { hapticsEnabled.value },
                     view = view.takeIf { soundEnabled.value },
                 )
             }
+            val gatedHaptic = if (hapticsEnabled.value) realHaptic else NoOpHapticFeedback
             BeamTheme(themePrefs) {
                 CompositionLocalProvider(
-                    LocalHapticFeedback provides tapFeedback,
+                    LocalHapticFeedback provides gatedHaptic,
+                    LocalTapHaptics provides tapFeedback,
                     LocalHapticsEnabled provides hapticsEnabled.value,
                     LocalSoundEnabled provides soundEnabled.value,
-                    LocalSilentHaptics provides if (hapticsEnabled.value) realHaptic else NoOpHapticFeedback,
+                    LocalSilentHaptics provides gatedHaptic,
                 ) {
                 val navController = rememberBeamNavController(startRoute = "main")
                 PredictiveNavHost(navController) { route ->
@@ -176,6 +189,7 @@ class MainActivity : ComponentActivity() {
                         "main" -> MainScreen(navController)
                         "settings" -> SettingsScreen(navController)
                         "settings/theme" -> ThemeSettingsScreen(navController)
+                        "settings/theme/color" -> ColorPickerScreen(navController)
                         "settings/notification" -> NotificationSettingsScreen(navController)
                         "settings/alarms" -> AlarmsSettingsScreen(navController)
                         "settings/workarounds" -> WorkaroundsSettingsScreen(navController)

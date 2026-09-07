@@ -81,6 +81,13 @@ enum class CardSpacing(
 val LocalCardSpacing = staticCompositionLocalOf { CardSpacing.Compact }
 
 /**
+ * Widest the single scrolling card column grows to. Past this the column centres instead of
+ * stretching, so a landscape phone or a tablet gets margins rather than cards spanning the whole
+ * display. Inert below this width, so portrait phones are unaffected.
+ */
+val BeamMaxContentWidth = 600.dp
+
+/**
  * The gap between two cards stacked inside one group. Prefer this over a bare [Spacer] so a card
  * gap stays greppable - the app is full of unrelated 4.dp spacers that must NOT scale with the
  * Card Spacing setting.

@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         applicationId = "montafra.beam"
         minSdk = 28 // BatteryManager.computeChargeTimeRemaining()
         targetSdk = 36
-        versionCode = 35
-        versionName = "1.9.4"
+        versionCode = 36
+        versionName = "2.0"
     }
 
     androidResources {
@@ -61,6 +61,10 @@ configure<ApplicationExtension> {
 kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
+        // Material 3 Expressive is still behind an opt-in annotation at material3 1.4. Opting in
+        // once here beats sprinkling @OptIn over every file that touches a theme, a top bar or a
+        // motion spec.
+        freeCompilerArgs.add("-opt-in=androidx.compose.material3.ExperimentalMaterial3ExpressiveApi")
     }
 }
 
@@ -69,13 +73,14 @@ dependencies {
     implementation("androidx.core:core-ktx:1.18.0")
     implementation("com.google.android.material:material:1.13.0")
 
-    val composeBom = platform("androidx.compose:compose-bom:2024.09.03")
+    // Material 3 Expressive - MaterialExpressiveTheme, MotionScheme, the flexible top bars - needs
+    // material3 1.4+. The 2024 BOM this project used to pin only ever reached 1.3.
+    val composeBom = platform("androidx.compose:compose-bom:2025.08.00")
     implementation(composeBom)
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui")
-    implementation("androidx.activity:activity-compose:1.9.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.3")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.3")
-    implementation("androidx.navigation:navigation-compose:2.8.5")
+    implementation("androidx.activity:activity-compose:1.10.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.2")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

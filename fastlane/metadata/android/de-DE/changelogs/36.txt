@@ -1,0 +1,6 @@
+• Material Expressive Theming eingeführt
+• Kartenfärbung im OLED-Design korrigiert
+• Allgemeine Verbesserungen
+• Unterstützung für den Querformat-Modus
+• Farbpalette aktualisiert
+• Spenden-Links aktualisiert

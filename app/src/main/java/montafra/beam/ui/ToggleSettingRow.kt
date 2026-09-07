@@ -18,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 
 /**
@@ -43,7 +42,7 @@ fun ToggleSettingRow(
     leadingIcon: Painter? = null,
     onHaptic: ((Boolean) -> Unit)? = null,
 ) {
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalTapHaptics.current
     val performHaptic: (Boolean) -> Unit =
         onHaptic ?: { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) }
     val toggle = { next: Boolean ->

@@ -24,6 +24,20 @@
     <string name="themeColor">Kolor motywu</string>
     <string name="themeColorAuto">Automatyczny</string>
     <string name="themeColorCustom">Niestandardowy</string>
+    <string name="themeColorCustomPick">Kolor niestandardowy</string>
+    <string name="themeColorPicker">Wybierz kolor</string>
+    <string name="colorHex">Hex</string>
+    <string name="colorHue">Odcień</string>
+    <string name="colorSaturation">Nasycenie</string>
+    <string name="colorBrightness">Jasność</string>
+    <string name="colorStyle">Styl kolorów</string>
+    <string name="colorStyleTonalSpot">Tonalny</string>
+    <string name="colorStyleNeutral">Neutralny</string>
+    <string name="colorStyleVibrant">Żywy</string>
+    <string name="colorStyleExpressive">Ekspresyjny</string>
+    <string name="colorStyleRainbow">Tęcza</string>
+    <string name="colorStyleFruitSalad">Sałatka owocowa</string>
+    <string name="colorStyleMonochrome">Monochromatyczny</string>
     <string name="themeMode">Tryb motywu</string>
     <string name="themeModeSystem">Systemowy</string>
     <string name="themeModeLight">Jasny</string>
@@ -45,6 +59,8 @@
     <string name="supportMe">Wesprzyj rozwój</string>
     <string name="supportMeDesc">Pomóż wspierać moje projekty 🐢</string>
     <string name="openInBrowser">Otwórz w przeglądarce</string>
+    <string name="openInWallet">Otwórz w portfelu</string>
+    <string name="noWalletApp">Nie znaleziono portfela, adres skopiowany</string>
     <string name="copy">Kopiuj</string>
     <string name="about">O aplikacji</string>
     <string name="language">Język</string>
@@ -79,7 +95,7 @@
     <string name="soundEnabledDesc">Odtwarzaj dźwięk kliknięcia przy dotknięciu</string>
     <string name="whatsNew">Co nowego</string>
     <string name="font">Czcionka</string>
-    <string name="fontDefault">Domyślna</string>
+    <string name="fontSystem">Systemowa</string>
     <string name="fontDesc">Krój pisma używany w całej aplikacji</string>
     <string name="outlinedCards">Karty z obramowaniem</string>
     <string name="outlinedCardsDesc">Pokazuj karty z obramowaniem zamiast wypełnionego tła</string>
@@ -106,6 +122,7 @@
     <string name="alarms">Alarmy baterii</string>
     <string name="alarmsShortDesc">Alerty poziomu naładowania i temperatury</string>
     <string name="alarmsDesc">Otrzymuj powiadomienie, gdy bateria osiągnie ustawiony poziom lub temperaturę. Alarmy działają nawet przy wyłączonym ekranie.</string>
+    <string name="alarmsNeedNotifications">Powiadomienia są zablokowane lub powiadomienie o stanie jest wyłączone – alarmy nie mogą Cię teraz ostrzec.</string>
     <string name="alarmLow">Niski poziom baterii</string>
     <string name="alarmLowDesc">Powiadom, gdy poziom spadnie do tej wartości procentowej, a bateria się nie ładuje</string>
     <string name="alarmHigh">Docelowe naładowanie</string>

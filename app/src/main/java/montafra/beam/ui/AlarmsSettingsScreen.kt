@@ -2,6 +2,7 @@ package montafra.beam.ui
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -36,10 +37,15 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
 import montafra.beam.R
+import montafra.beam.alarmChannelId
+import montafra.beam.alarmHighDefaultThreshold
+import montafra.beam.alarmLowDefaultThreshold
+import montafra.beam.alarmRepeatDefaultMin
+import montafra.beam.alarmTempDefaultThreshold
 import montafra.beam.cToF
 import montafra.beam.settingsName
 import montafra.beam.settingsUpdateInd
@@ -47,6 +53,7 @@ import montafra.beam.ui.theme.BeamCard
 import montafra.beam.ui.theme.CardGap
 import montafra.beam.ui.theme.cardShapeBottom
 import montafra.beam.ui.theme.cardShapeMiddle
+import montafra.beam.ui.theme.cardShapeSingle
 import montafra.beam.ui.theme.cardShapeTop
 import kotlin.math.roundToInt
 
@@ -54,42 +61,59 @@ import kotlin.math.roundToInt
 @Composable
 fun AlarmsSettingsScreen(navController: BeamNavController) {
     val context = LocalContext.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalTapHaptics.current
     val prefs = remember { context.getSharedPreferences(settingsName, Context.MODE_PRIVATE) }
 
-    var lowEnabled by remember { mutableStateOf(prefs.getBoolean("alarmLowEnabled", false)) }
-    var lowThreshold by remember { mutableIntStateOf(prefs.getInt("alarmLowThreshold", 20)) }
-    var lowRepeat by remember { mutableStateOf(prefs.getBoolean("alarmLowRepeat", false)) }
-
-    var highEnabled by remember { mutableStateOf(prefs.getBoolean("alarmHighEnabled", false)) }
-    var highThreshold by remember { mutableIntStateOf(prefs.getInt("alarmHighThreshold", 85)) }
-    var highRepeat by remember { mutableStateOf(prefs.getBoolean("alarmHighRepeat", false)) }
-
-    var tempEnabled by remember { mutableStateOf(prefs.getBoolean("alarmTempEnabled", false)) }
-    var tempThreshold by remember { mutableIntStateOf(prefs.getInt("alarmTempThreshold", 40)) }
-    var tempRepeat by remember { mutableStateOf(prefs.getBoolean("alarmTempRepeat", false)) }
     // Threshold is stored/compared in Celsius; only its label converts for display.
     val useFahrenheit = remember { prefs.getBoolean("useFahrenheit", false) }
+
+    // The three alarms differ only in these values; the pref keys are derived from the prefix
+    // exactly like StatusService derives them, and the thresholds default to the same shared
+    // constants, so the two sides cannot drift.
+    val specs = remember {
+        listOf(
+            AlarmUiSpec("alarmLow", R.string.alarmLow, R.string.alarmLowDesc,
+                alarmLowDefaultThreshold, 5f..50f, 44) { "$it%" },
+            AlarmUiSpec("alarmHigh", R.string.alarmHigh, R.string.alarmHighDesc,
+                alarmHighDefaultThreshold, 50f..100f, 49) { "$it%" },
+            AlarmUiSpec("alarmTemp", R.string.alarmTemp, R.string.alarmTempDesc,
+                alarmTempDefaultThreshold, 35f..55f, 19) { c ->
+                if (useFahrenheit) "${cToF(c.toDouble()).roundToInt()}°F" else "$c°C"
+            },
+        )
+    }
+    val states = remember { specs.map { AlarmUiState(prefs, it) } }
 
     val repeatOptions = remember { listOf(5, 15, 30, 60) }
     val repeatLabels = remember { listOf("5m", "15m", "30m", "60m") }
     var repeatIndex by remember {
-        mutableIntStateOf(repeatOptions.indexOf(prefs.getInt("alarmRepeatIntervalMin", 15)).coerceAtLeast(0))
+        mutableIntStateOf(
+            repeatOptions.indexOf(prefs.getInt("alarmRepeatIntervalMin", alarmRepeatDefaultMin))
+                .coerceAtLeast(0)
+        )
+    }
+
+    // Alarms are evaluated inside the status service and delivered as notifications, so nothing
+    // can alert the user while notifications are blocked or the status notification (which keeps
+    // the service alive) is off. Failing silently would leave an armed alarm that never rings.
+    val alarmsBlocked = remember {
+        val noteMgr = NotificationManagerCompat.from(context)
+        !prefs.getBoolean("notificationEnabled", true) ||
+            !noteMgr.areNotificationsEnabled() ||
+            noteMgr.getNotificationChannel(alarmChannelId)?.importance ==
+                NotificationManagerCompat.IMPORTANCE_NONE
     }
 
     fun saveAlarms() {
-        prefs.edit()
-            .putBoolean("alarmLowEnabled", lowEnabled)
-            .putInt("alarmLowThreshold", lowThreshold)
-            .putBoolean("alarmLowRepeat", lowRepeat)
-            .putBoolean("alarmHighEnabled", highEnabled)
-            .putInt("alarmHighThreshold", highThreshold)
-            .putBoolean("alarmHighRepeat", highRepeat)
-            .putBoolean("alarmTempEnabled", tempEnabled)
-            .putInt("alarmTempThreshold", tempThreshold)
-            .putBoolean("alarmTempRepeat", tempRepeat)
-            .putInt("alarmRepeatIntervalMin", repeatOptions[repeatIndex])
-            .commit()
+        prefs.edit().apply {
+            specs.forEachIndexed { i, spec ->
+                val s = states[i]
+                putBoolean("${spec.prefix}Enabled", s.enabled)
+                putInt("${spec.prefix}Threshold", s.threshold)
+                putBoolean("${spec.prefix}Repeat", s.repeat)
+            }
+            putInt("alarmRepeatIntervalMin", repeatOptions[repeatIndex])
+        }.commit()
         context.sendBroadcast(
             Intent().setPackage(context.packageName).setAction(settingsUpdateInd)
         )
@@ -107,57 +131,43 @@ fun AlarmsSettingsScreen(navController: BeamNavController) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        if (alarmsBlocked) {
+            item {
+                BeamCard(modifier = Modifier.fillMaxWidth(), shape = cardShapeSingle()) {
+                    Text(
+                        text = stringResource(R.string.alarmsNeedNotifications),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    )
+                }
+            }
+        }
         item {
-            AlarmCard(
-                shape = cardShapeTop(),
-                title = stringResource(R.string.alarmLow),
-                description = stringResource(R.string.alarmLowDesc),
-                enabled = lowEnabled,
-                onEnabledChange = { lowEnabled = it; saveAlarms() },
-                valueLabel = "$lowThreshold%",
-                sliderValue = lowThreshold.toFloat(),
-                valueRange = 5f..50f,
-                steps = 44,
-                onSliderChange = { lowThreshold = it.roundToInt() },
-                onSliderChangeFinished = { saveAlarms() },
-                repeat = lowRepeat,
-                onRepeatChange = { lowRepeat = it; saveAlarms() },
-                haptic = haptic,
-            )
-            CardGap()
-            AlarmCard(
-                shape = cardShapeMiddle(),
-                title = stringResource(R.string.alarmHigh),
-                description = stringResource(R.string.alarmHighDesc),
-                enabled = highEnabled,
-                onEnabledChange = { highEnabled = it; saveAlarms() },
-                valueLabel = "$highThreshold%",
-                sliderValue = highThreshold.toFloat(),
-                valueRange = 50f..100f,
-                steps = 49,
-                onSliderChange = { highThreshold = it.roundToInt() },
-                onSliderChangeFinished = { saveAlarms() },
-                repeat = highRepeat,
-                onRepeatChange = { highRepeat = it; saveAlarms() },
-                haptic = haptic,
-            )
-            CardGap()
-            AlarmCard(
-                shape = cardShapeBottom(),
-                title = stringResource(R.string.alarmTemp),
-                description = stringResource(R.string.alarmTempDesc),
-                enabled = tempEnabled,
-                onEnabledChange = { tempEnabled = it; saveAlarms() },
-                valueLabel = if (useFahrenheit) "${cToF(tempThreshold.toDouble()).roundToInt()}°F" else "$tempThreshold°C",
-                sliderValue = tempThreshold.toFloat(),
-                valueRange = 35f..55f,
-                steps = 19,
-                onSliderChange = { tempThreshold = it.roundToInt() },
-                onSliderChangeFinished = { saveAlarms() },
-                repeat = tempRepeat,
-                onRepeatChange = { tempRepeat = it; saveAlarms() },
-                haptic = haptic,
-            )
+            specs.forEachIndexed { i, spec ->
+                if (i > 0) CardGap()
+                val s = states[i]
+                AlarmCard(
+                    shape = when (i) {
+                        0 -> cardShapeTop()
+                        specs.lastIndex -> cardShapeBottom()
+                        else -> cardShapeMiddle()
+                    },
+                    title = stringResource(spec.titleRes),
+                    description = stringResource(spec.descRes),
+                    enabled = s.enabled,
+                    onEnabledChange = { s.enabled = it; saveAlarms() },
+                    valueLabel = spec.label(s.threshold),
+                    sliderValue = s.threshold.toFloat(),
+                    valueRange = spec.valueRange,
+                    steps = spec.steps,
+                    onSliderChange = { s.threshold = it.roundToInt() },
+                    onSliderChangeFinished = { saveAlarms() },
+                    repeat = s.repeat,
+                    onRepeatChange = { s.repeat = it; saveAlarms() },
+                    haptic = haptic,
+                )
+            }
         }
         item {
             Column(modifier = Modifier.padding(horizontal = 4.dp)) {
@@ -181,6 +191,24 @@ fun AlarmsSettingsScreen(navController: BeamNavController) {
         }
         item { Spacer(Modifier.height(16.dp)) }
     }
+}
+
+/** The static half of one alarm row: pref-key prefix, strings, slider geometry, label format. */
+private class AlarmUiSpec(
+    val prefix: String,
+    val titleRes: Int,
+    val descRes: Int,
+    val defaultThreshold: Int,
+    val valueRange: ClosedFloatingPointRange<Float>,
+    val steps: Int,
+    val label: (Int) -> String,
+)
+
+/** The mutable half, seeded from the prefs the way StatusService reads them. */
+private class AlarmUiState(prefs: SharedPreferences, spec: AlarmUiSpec) {
+    var enabled by mutableStateOf(prefs.getBoolean("${spec.prefix}Enabled", false))
+    var threshold by mutableIntStateOf(prefs.getInt("${spec.prefix}Threshold", spec.defaultThreshold))
+    var repeat by mutableStateOf(prefs.getBoolean("${spec.prefix}Repeat", false))
 }
 
 @Composable

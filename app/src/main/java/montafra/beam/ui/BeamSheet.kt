@@ -7,10 +7,13 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -26,7 +29,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
@@ -37,13 +39,13 @@ private val SheetTopGap = 16.dp
  * The stock Material3 pill, made tappable: a tap snaps the sheet to its top position, and a second
  * tap collapses it back to the half detent on sheets that have one.
  *
- * Haptics go through `LocalHapticFeedback`, which MainActivity overrides with a [TapFeedback], so
+ * Haptics go through `LocalTapHaptics`, the sounding channel for the app's own taps, so
  * the tap also plays the click sound and is gated by the haptics/sound preferences for free.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BeamDragHandle(sheetState: SheetState) {
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalTapHaptics.current
     val scope = rememberCoroutineScope()
     Box(
         modifier = Modifier
@@ -96,6 +98,12 @@ fun BeamSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         dragHandle = { BeamDragHandle(sheetState) },
+        // The window is shortEdges, so in landscape the cutout sits inside it rather than being
+        // letterboxed away. Material3's default applies only the bottom safe-drawing inset, which
+        // leaves body text with nothing but its own padding between it and the notch.
+        contentWindowInsets = {
+            WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+        },
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
             val statusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()

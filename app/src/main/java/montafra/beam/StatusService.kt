@@ -44,9 +44,20 @@ class StatusService : Service() {
         // Weight of the notification icon text, matching Typeface.DEFAULT_BOLD. Fonts whose
         // wght axis stops lower are clamped to their own ceiling.
         private const val iconWeight = 700
+        // Level alarms re-arm this many percent past their threshold, so boundary jitter
+        // cannot fire them twice.
+        private const val alarmLevelHysteresis = 2
     }
 
-    private class AlarmRuntime {
+    /**
+     * One alarm's configuration (from the shared settings file) and persisted runtime state.
+     * Everything is keyed off [prefix], so the settings screen and this service cannot drift on
+     * key names; thresholds default to the constants shared with AlarmsSettingsScreen.
+     */
+    private class Alarm(val prefix: String, val noteId: Int, val defaultThreshold: Int) {
+        var enabled = false
+        var threshold = defaultThreshold
+        var repeat = false
         var fired = false
         var lastMs = 0L
     }
@@ -73,19 +84,11 @@ class StatusService : Service() {
     private var showTimeToFull: Boolean = true
     private var showScreenTimeInNotification: Boolean = false
     private var pollIntervalMs: Long = intervalMs
-    private var alarmLowEnabled = false
-    private var alarmLowThreshold = 20
-    private var alarmLowRepeat = false
-    private var alarmHighEnabled = false
-    private var alarmHighThreshold = 85
-    private var alarmHighRepeat = false
-    private var alarmTempEnabled = false
-    private var alarmTempThreshold = 40
-    private var alarmTempRepeat = false
-    private var alarmRepeatIntervalMs = 15 * 60_000L
-    private val alarmLowState = AlarmRuntime()
-    private val alarmHighState = AlarmRuntime()
-    private val alarmTempState = AlarmRuntime()
+    private val alarmLow = Alarm("alarmLow", alarmLowNoteId, alarmLowDefaultThreshold)
+    private val alarmHigh = Alarm("alarmHigh", alarmHighNoteId, alarmHighDefaultThreshold)
+    private val alarmTemp = Alarm("alarmTemp", alarmTempNoteId, alarmTempDefaultThreshold)
+    private val alarms = listOf(alarmLow, alarmHigh, alarmTemp)
+    private var alarmRepeatIntervalMs = alarmRepeatDefaultMin * 60_000L
     // Screen-time bookkeeping. Accumulated durations run off SystemClock.elapsedRealtime(),
     // which is monotonic and immune to NTP corrections and clock changes; only the session
     // baseline is wall clock, because it has to survive reboots. screenTimeOnStart is
@@ -127,7 +130,7 @@ class StatusService : Service() {
                     // paused then), so alarms still fire. Only refresh the snapshot + check
                     // thresholds here; the status notification is left untouched. Skipped
                     // entirely when no alarm is enabled, so non-users don't wake on every change.
-                    if (alarmLowEnabled || alarmHighEnabled || alarmTempEnabled) {
+                    if (alarms.any { it.enabled }) {
                         snapshot = battery.snapshot()
                         checkAlarms()
                     }
@@ -187,22 +190,18 @@ class StatusService : Service() {
         // The icon is a small ALPHA_8 bitmap, so it needs a bold weight to stay legible.
         // Pinning it matters: without it the variable fonts draw their default instance,
         // which is Light 300 for Space Grotesk.
-        iconPaint.typeface = BeamFont.forKey(settings.getString("fontFamily", "default"))
+        iconPaint.typeface = BeamFont.forKey(settings.getString("fontFamily", defaultFontKey))
             ?.typeface(this, iconWeight)
             ?: Typeface.DEFAULT_BOLD
         showTimeToFull = settings.getBoolean("showTimeToFull", true)
         showScreenTimeInNotification = settings.getBoolean("showScreenTimeInNotification", false)
         pollIntervalMs = settings.getLong("pollIntervalMs", intervalMs)
-        alarmLowEnabled = settings.getBoolean("alarmLowEnabled", false)
-        alarmLowThreshold = settings.getInt("alarmLowThreshold", 20)
-        alarmLowRepeat = settings.getBoolean("alarmLowRepeat", false)
-        alarmHighEnabled = settings.getBoolean("alarmHighEnabled", false)
-        alarmHighThreshold = settings.getInt("alarmHighThreshold", 85)
-        alarmHighRepeat = settings.getBoolean("alarmHighRepeat", false)
-        alarmTempEnabled = settings.getBoolean("alarmTempEnabled", false)
-        alarmTempThreshold = settings.getInt("alarmTempThreshold", 40)
-        alarmTempRepeat = settings.getBoolean("alarmTempRepeat", false)
-        alarmRepeatIntervalMs = settings.getInt("alarmRepeatIntervalMin", 15) * 60_000L
+        alarms.forEach { a ->
+            a.enabled = settings.getBoolean("${a.prefix}Enabled", false)
+            a.threshold = settings.getInt("${a.prefix}Threshold", a.defaultThreshold)
+            a.repeat = settings.getBoolean("${a.prefix}Repeat", false)
+        }
+        alarmRepeatIntervalMs = settings.getInt("alarmRepeatIntervalMin", alarmRepeatDefaultMin) * 60_000L
     }
 
     /**
@@ -221,16 +220,25 @@ class StatusService : Service() {
         if (stateRestored) return
         stateRestored = true
 
-        alarmLowState.fired = state.getBoolean("alarmLowFired", false)
-        alarmLowState.lastMs = state.getLong("alarmLowLastMs", 0L)
-        alarmHighState.fired = state.getBoolean("alarmHighFired", false)
-        alarmHighState.lastMs = state.getLong("alarmHighLastMs", 0L)
-        alarmTempState.fired = state.getBoolean("alarmTempFired", false)
-        alarmTempState.lastMs = state.getLong("alarmTempLastMs", 0L)
+        alarms.forEach { a ->
+            a.fired = state.getBoolean("${a.prefix}Fired", false)
+            a.lastMs = state.getLong("${a.prefix}LastMs", 0L)
+        }
 
         screenTimeSessionStart = state.getLong("screenTimeSessionStart", 0L)
         screenTimeOnTotal = state.getLong("screenTimeOnTotal", 0L)
         screenTimeOnStart = state.getLong("screenTimeOnStart", 0L)
+        // One-time migration: before this file existed, screen time lived in the shared settings
+        // file. Session start (wall clock in both schemes) and the accumulated total carry over
+        // as-is; the old open period ran on wall clock in some other boot and cannot be mapped
+        // onto this boot's elapsedRealtime, so it is dropped (bounded loss: one open period).
+        // The stale keys are read-only here — this process must not write the settings file (see
+        // stateName above) — so they stay behind, harmlessly.
+        if (!state.contains("screenTimeSessionStart")) {
+            val legacy = getSharedPreferences(settingsName, MODE_MULTI_PROCESS)
+            screenTimeSessionStart = legacy.getLong("screenTimeSessionStart", 0L)
+            screenTimeOnTotal = legacy.getLong("screenTimeOnTotal", 0L)
+        }
         screenTimeCheckpoint = screenTimeOnStart
         wasPlugged = when (state.getInt("screenTimePlugged", -1)) {
             1    -> true
@@ -641,15 +649,21 @@ class StatusService : Service() {
         // Cheap when alarms are disabled (runAlarm just keeps their state cleared); this also
         // lets the update()/settings-update path reset state when an alarm is turned off.
         val now = System.currentTimeMillis()
-        val charging = snapshot.charging
+        // Plug state, not charging status: BATTERY_STATUS_NOT_CHARGING is what charge-limiting
+        // and adaptive-charging devices report while still on the cable (see syncPlugState()),
+        // and treating those pauses as "unplugged" would re-arm the high alarm on every hold
+        // cycle and fire the low alarm mid-charge. charging is the fallback for the rare
+        // broadcast without EXTRA_PLUGGED.
+        val plugged = snapshot.plugged ?: snapshot.charging
         var changed = false
 
         snapshot.levelPercent?.roundToInt()?.let { level ->
+            // Level alarms re-arm a band past their threshold (mirroring the temperature
+            // band below), so 1% jitter at the boundary cannot re-fire them.
             if (runAlarm(
-                    alarmLowState, alarmLowEnabled,
-                    active = !charging && level <= alarmLowThreshold,
-                    rearmed = charging || level > alarmLowThreshold,
-                    repeat = alarmLowRepeat, noteId = alarmLowNoteId, now = now,
+                    alarmLow, now,
+                    active = !plugged && level <= alarmLow.threshold,
+                    rearmed = plugged || level > alarmLow.threshold + alarmLevelHysteresis,
                 ) {
                     buildAlarmNotification(
                         getString(R.string.alarmLowTitle),
@@ -659,10 +673,9 @@ class StatusService : Service() {
             ) changed = true
 
             if (runAlarm(
-                    alarmHighState, alarmHighEnabled,
-                    active = charging && level >= alarmHighThreshold,
-                    rearmed = !charging || level < alarmHighThreshold,
-                    repeat = alarmHighRepeat, noteId = alarmHighNoteId, now = now,
+                    alarmHigh, now,
+                    active = plugged && level >= alarmHigh.threshold,
+                    rearmed = !plugged || level <= alarmHigh.threshold - alarmLevelHysteresis,
                 ) {
                     buildAlarmNotification(
                         getString(R.string.alarmHighTitle),
@@ -674,10 +687,9 @@ class StatusService : Service() {
 
         snapshot.celsius?.let { temp ->
             if (runAlarm(
-                    alarmTempState, alarmTempEnabled,
-                    active = temp >= alarmTempThreshold,
-                    rearmed = temp <= alarmTempThreshold - 2,
-                    repeat = alarmTempRepeat, noteId = alarmTempNoteId, now = now,
+                    alarmTemp, now,
+                    active = temp >= alarmTemp.threshold,
+                    rearmed = temp <= alarmTemp.threshold - 2,
                 ) {
                     buildAlarmNotification(
                         getString(R.string.alarmTempTitle),
@@ -694,42 +706,49 @@ class StatusService : Service() {
     }
 
     /**
-     * Runs one alarm's state machine. Fires (or re-fires, when [repeat] is set) the notification
-     * built by [build] on transition into the alarm condition, and re-arms once the value has
-     * recovered ([rearmed]). Returns true if the persisted runtime state changed.
+     * Runs one alarm's state machine. Fires (or re-fires, when the alarm's repeat is set) the
+     * notification built by [build] on transition into the alarm condition, and re-arms once the
+     * value has recovered ([rearmed]). Returns true if the persisted runtime state changed.
      */
     private fun runAlarm(
-        state: AlarmRuntime,
-        enabled: Boolean,
+        alarm: Alarm,
+        now: Long,
         active: Boolean,
         rearmed: Boolean,
-        repeat: Boolean,
-        noteId: Int,
-        now: Long,
         build: () -> Notification,
     ): Boolean {
-        val prevFired = state.fired
-        val prevLast = state.lastMs
-        if (!enabled) {
-            state.fired = false
-            state.lastMs = 0L
+        val prevFired = alarm.fired
+        val prevLast = alarm.lastMs
+        if (!alarm.enabled) {
+            alarm.fired = false
+            alarm.lastMs = 0L
         } else {
             if (rearmed) {
-                state.fired = false
-                state.lastMs = 0L
+                alarm.fired = false
+                alarm.lastMs = 0L
             }
             if (active) {
-                val shouldFire = !state.fired ||
-                    (repeat && now - state.lastMs >= alarmRepeatIntervalMs)
-                if (shouldFire) {
-                    noteMgr.notify(noteId, build())
-                    state.fired = true
-                    state.lastMs = now
+                val shouldFire = !alarm.fired ||
+                    (alarm.repeat && now - alarm.lastMs >= alarmRepeatIntervalMs)
+                // Fired is only recorded when the notification can actually reach the user.
+                // With the permission or the alarms channel blocked, notify() is silently
+                // dropped, and marking the alarm fired anyway would swallow the alert for good;
+                // left armed, it goes off as soon as notifications come back while the
+                // condition still holds.
+                if (shouldFire && canPostAlarms()) {
+                    noteMgr.notify(alarm.noteId, build())
+                    alarm.fired = true
+                    alarm.lastMs = now
                 }
             }
         }
-        return state.fired != prevFired || state.lastMs != prevLast
+        return alarm.fired != prevFired || alarm.lastMs != prevLast
     }
+
+    private fun canPostAlarms(): Boolean =
+        noteMgr.areNotificationsEnabled() &&
+            noteMgr.getNotificationChannel(alarmChannelId)?.importance !=
+                NotificationManager.IMPORTANCE_NONE
 
     private fun buildAlarmNotification(title: String, text: String): Notification =
         Notification.Builder(this, alarmChannelId)
@@ -743,12 +762,10 @@ class StatusService : Service() {
 
     private fun persistAlarmState() {
         state.edit {
-            putBoolean("alarmLowFired", alarmLowState.fired)
-            putLong("alarmLowLastMs", alarmLowState.lastMs)
-            putBoolean("alarmHighFired", alarmHighState.fired)
-            putLong("alarmHighLastMs", alarmHighState.lastMs)
-            putBoolean("alarmTempFired", alarmTempState.fired)
-            putLong("alarmTempLastMs", alarmTempState.lastMs)
+            alarms.forEach { a ->
+                putBoolean("${a.prefix}Fired", a.fired)
+                putLong("${a.prefix}LastMs", a.lastMs)
+            }
         }
     }
 }

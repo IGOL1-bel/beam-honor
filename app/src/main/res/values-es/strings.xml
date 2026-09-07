@@ -24,6 +24,20 @@
     <string name="themeColor">Color del tema</string>
     <string name="themeColorAuto">Automático</string>
     <string name="themeColorCustom">Personalizado</string>
+    <string name="themeColorCustomPick">Color personalizado</string>
+    <string name="themeColorPicker">Elegir un color</string>
+    <string name="colorHex">Hex</string>
+    <string name="colorHue">Tono</string>
+    <string name="colorSaturation">Saturación</string>
+    <string name="colorBrightness">Brillo</string>
+    <string name="colorStyle">Estilo de color</string>
+    <string name="colorStyleTonalSpot">Tonal</string>
+    <string name="colorStyleNeutral">Neutro</string>
+    <string name="colorStyleVibrant">Vibrante</string>
+    <string name="colorStyleExpressive">Expresivo</string>
+    <string name="colorStyleRainbow">Arcoíris</string>
+    <string name="colorStyleFruitSalad">Macedonia</string>
+    <string name="colorStyleMonochrome">Monocromo</string>
     <string name="themeMode">Modo de tema</string>
     <string name="themeModeSystem">Sistema</string>
     <string name="themeModeLight">Claro</string>
@@ -45,6 +59,8 @@
     <string name="supportMe">Apoya el desarrollo</string>
     <string name="supportMeDesc">Ayuda a apoyar mis proyectos 🐢</string>
     <string name="openInBrowser">Abrir en el navegador</string>
+    <string name="openInWallet">Abrir en la cartera</string>
+    <string name="noWalletApp">No se encontró ninguna cartera, dirección copiada</string>
     <string name="copy">Copiar</string>
     <string name="about">Acerca de</string>
     <string name="language">Idioma</string>
@@ -81,7 +97,7 @@
     <string name="soundEnabledDesc">Reproducir un clic al tocar</string>
     <string name="whatsNew">Novedades</string>
     <string name="font">Fuente</string>
-    <string name="fontDefault">Predeterminada</string>
+    <string name="fontSystem">Sistema</string>
     <string name="fontDesc">Tipografía usada en toda la aplicación</string>
     <string name="widgetTempLabel">Temperatura de la batería</string>
     <string name="versionLicenseLinks">Versión, licencia y enlaces</string>
@@ -108,6 +124,7 @@
     <string name="alarms">Alarmas de batería</string>
     <string name="alarmsShortDesc">Alertas de carga, descarga y temperatura</string>
     <string name="alarmsDesc">Recibe una notificación cuando la batería alcance un nivel o temperatura que definas. Las alarmas funcionan incluso con la pantalla apagada.</string>
+    <string name="alarmsNeedNotifications">Las notificaciones están bloqueadas o la notificación de estado está desactivada: las alarmas no pueden avisarte por ahora.</string>
     <string name="alarmLow">Batería baja</string>
     <string name="alarmLowDesc">Avisar cuando el nivel baje a este porcentaje mientras no está cargando</string>
     <string name="alarmHigh">Carga objetivo</string>

@@ -26,7 +26,6 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Velocity
 import kotlinx.coroutines.launch
@@ -76,7 +75,7 @@ fun loadChangelogs(context: Context, sinceVersionCode: Int, currentVersionCode: 
 @Composable
 fun ChangelogSheet(entries: List<ChangelogEntry>, onDismiss: () -> Unit) {
     val sheetState = rememberModalBottomSheetState()
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalTapHaptics.current
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val maxPull = with(density) { 150.dp.toPx() }

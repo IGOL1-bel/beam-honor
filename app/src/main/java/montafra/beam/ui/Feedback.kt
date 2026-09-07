@@ -20,11 +20,21 @@ val LocalSoundEnabled = staticCompositionLocalOf { true }
 /**
  * Haptics *without* the accompanying tap sound.
  *
- * `LocalHapticFeedback` is provided as a [TapFeedback], so every call site gets a click for free.
+ * The app's discrete tap call sites go through [LocalTapHaptics], which adds a click sound.
  * Continuous gestures — slider step ticks in particular — would fire one click per step, which is
  * grating, so they pull their haptics from here instead. Still gated by the haptics preference.
  */
 val LocalSilentHaptics = staticCompositionLocalOf<HapticFeedback> { NoOpHapticFeedback }
+
+/**
+ * Haptics for the app's own discrete taps: every event also plays the platform click sound.
+ *
+ * Deliberately a separate local rather than an override of `LocalHapticFeedback`: Compose and
+ * Material components fire haptics through `LocalHapticFeedback` internally (text-selection
+ * handle drags, stepped-slider ticks, …), and routing those through the sounding channel turns
+ * every internal tick into a click. Only call sites that explicitly opt in get the sound.
+ */
+val LocalTapHaptics = staticCompositionLocalOf<HapticFeedback> { NoOpHapticFeedback }
 
 /**
  * Decorates a [HapticFeedback] so that every discrete feedback event also plays the platform touch
