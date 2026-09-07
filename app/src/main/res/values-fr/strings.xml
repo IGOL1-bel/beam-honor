@@ -29,8 +29,8 @@
     <string name="colorHex">Hex</string>
     <string name="colorHue">Teinte</string>
     <string name="colorSaturation">Saturation</string>
+    <string name="colorBrightness">Luminosité</string>
     <string name="colorStyle">Style de couleur</string>
-    <string name="colorStyleAutoHint">Les styles de couleur s\'appliquent aux couleurs personnalisées</string>
     <string name="colorStyleTonalSpot">Tonal</string>
     <string name="colorStyleNeutral">Neutre</string>
     <string name="colorStyleVibrant">Vif</string>
@@ -59,6 +59,8 @@
     <string name="supportMe">Soutenir le développement</string>
     <string name="supportMeDesc">Aide à soutenir mes projets 🐢</string>
     <string name="openInBrowser">Ouvrir dans le navigateur</string>
+    <string name="openInWallet">Ouvrir dans le portefeuille</string>
+    <string name="noWalletApp">Aucun portefeuille trouvé, adresse copiée</string>
     <string name="copy">Copier</string>
     <string name="about">À propos</string>
     <string name="language">Langue</string>
@@ -94,7 +96,7 @@
     <string name="soundEnabledDesc">Émettre un clic lors d\'une touche</string>
     <string name="whatsNew">Nouveautés</string>
     <string name="font">Police</string>
-    <string name="fontDefault">Par défaut</string>
+    <string name="fontSystem">Système</string>
     <string name="fontDesc">Police utilisée dans toute l\'application</string>
     <string name="widgetTempLabel">Température de la batterie</string>
     <string name="versionLicenseLinks">Version, licence et liens</string>
@@ -121,6 +123,7 @@
     <string name="alarms">Alarmes de batterie</string>
     <string name="alarmsShortDesc">Alertes de charge, décharge et température</string>
     <string name="alarmsDesc">Recevez une notification lorsque la batterie atteint un niveau ou une température que vous définissez. Les alarmes fonctionnent même lorsque l\'écran est éteint.</string>
+    <string name="alarmsNeedNotifications">Les notifications sont bloquées ou la notification d\'état est désactivée : les alarmes ne peuvent pas vous avertir pour le moment.</string>
     <string name="alarmLow">Batterie faible</string>
     <string name="alarmLowDesc">Alerter lorsque le niveau descend à ce pourcentage hors charge</string>
     <string name="alarmHigh">Charge cible</string>

@@ -3,11 +3,13 @@
     <color name="foreground">#212121</color>
     <color name="foreground_strong">#000000</color>
     <!--
-        Everything config-dependent lives on the Base style so the values-v29 overlay only has to add
-        the contrast flag on top of it (styles resolve their parent at runtime, so Base still picks
-        up the values-night variant in dark mode).
+        Platform alias: values-night overrides only this empty style (and the color resources
+        above), so every shared window item lives exactly once, on Base below. Styles resolve
+        their parent at runtime, so Base picks up the dark parent in dark mode, and the
+        values-v29 overlay still only has to add the contrast flag on top of Theme.Wattz.
     -->
-    <style name="Base.Theme.Wattz" parent="Theme.Material3.Light.NoActionBar">
+    <style name="Platform.Theme.Wattz" parent="Theme.Material3.Light.NoActionBar" />
+    <style name="Base.Theme.Wattz" parent="Platform.Theme.Wattz">
         <item name="colorPrimary">@color/primary</item>
         <item name="colorOnPrimary">@color/text_on_primary</item>
         <item name="android:statusBarColor">?attr/colorPrimary</item>
@@ -18,6 +20,12 @@
             a sheet opens.
         -->
         <item name="android:navigationBarColor">@android:color/transparent</item>
+        <!--
+            Landscape puts the cutout on a long edge, where the default mode letterboxes the whole
+            window away from it. shortEdges keeps the app edge-to-edge; the scaffolds ask for
+            safeDrawing insets so no content actually lands under the notch.
+        -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
         <item name="android:textSize">@dimen/text_size</item>
         <item name="android:textColor">@color/foreground</item>
         <item name="android:windowBackground">@color/background</item>

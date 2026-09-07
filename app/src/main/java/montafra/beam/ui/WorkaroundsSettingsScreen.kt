@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -42,7 +41,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -62,7 +60,6 @@ import montafra.beam.ui.theme.cardShapeBottom
 import montafra.beam.ui.theme.cardShapeMiddle
 import montafra.beam.ui.theme.cardShapeSingle
 import montafra.beam.ui.theme.cardShapeTop
-import montafra.beam.ui.theme.rememberCardInteraction
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,7 +67,7 @@ import kotlin.math.roundToInt
 fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewModel = viewModel()) {
     val data by vm.data.collectAsState()
     val context = LocalContext.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalTapHaptics.current
     val prefs = remember { context.getSharedPreferences(settingsName, Context.MODE_PRIVATE) }
 
     // Refreshed on resume so the warning clears when the user returns from the
@@ -270,10 +267,7 @@ fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewM
                             )
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        modifier = Modifier.clickable(
-                            interactionSource = rememberCardInteraction(),
-                            indication = LocalIndication.current,
-                        ) {
+                        modifier = Modifier.clickable {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             try {
                                 // Battery usage screen (per-app breakdown); AOSP/Pixel only,
@@ -328,10 +322,7 @@ fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewM
                                 )
                             },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                            modifier = Modifier.clickable(
-                                interactionSource = rememberCardInteraction(),
-                                indication = LocalIndication.current,
-                            ) {
+                            modifier = Modifier.clickable {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 VendorBatteryHints.openVendorSettings(context)
                             },
@@ -348,10 +339,7 @@ fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewM
                                 )
                             },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                            modifier = Modifier.clickable(
-                                interactionSource = rememberCardInteraction(),
-                                indication = LocalIndication.current,
-                            ) {
+                            modifier = Modifier.clickable {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 try {
                                     context.startActivity(

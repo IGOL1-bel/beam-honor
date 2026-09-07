@@ -1,10 +1,7 @@
 package montafra.beam.ui
 
 import android.content.Context
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,25 +14,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -44,55 +37,58 @@ import montafra.beam.settingsName
 import montafra.beam.ui.theme.BeamCard
 import montafra.beam.ui.theme.ColorStyle
 import montafra.beam.ui.theme.LocalCardSpacing
+import montafra.beam.ui.theme.applyCustomSeed
 import montafra.beam.ui.theme.cardShapeSingle
-import montafra.beam.ui.theme.defaultSeedColor
+import montafra.beam.ui.theme.customSeed
 import montafra.beam.ui.theme.hct.Hct
 import montafra.beam.ui.theme.stylePreview
+import kotlin.math.roundToInt
 
 /**
  * The full seed picker, on its own page because a dragging finger has nowhere to go inside a
  * scrolling settings list.
  *
- * Two sliders rather than the usual saturation/brightness square, because those are exactly the
- * two axes that reach the theme. A tonal palette regenerates every tone from 0 to 100 by
- * construction, so a seed's own brightness only names a point on a ladder that gets rebuilt
- * anyway - a brightness control here would move the swatch and change nothing else. Hue and
- * chroma are the whole story.
+ * Three sliders, one per HCT axis, so every sRGB colour is reachable without touching the hex
+ * field. The palette generator regenerates its own tone ladder from the seed, so brightness moves
+ * the theme less than the other two axes - but the seed itself is user-visible (the swatch, the
+ * hex, and the preset grid in SettingsScreen holds the seed's tone fixed), so it gets a control
+ * like the others.
  */
 @Composable
 fun ColorPickerScreen(navController: BeamNavController) {
     val context = LocalContext.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalTapHaptics.current
     val prefs = remember { context.getSharedPreferences(settingsName, Context.MODE_PRIVATE) }
 
-    val initial = remember {
-        prefs.getInt("themeColorValue", defaultSeedColor).takeIf { it != -1 } ?: defaultSeedColor
-    }
+    val initial = remember { prefs.customSeed() }
     val style = remember { ColorStyle.forKey(prefs.getString("themeColorStyle", null)) }
     val initialHct = remember { Hct.fromInt(initial) }
 
-    var hue by remember { mutableFloatStateOf(initialHct.hue.toFloat()) }
-    var chroma by remember { mutableFloatStateOf(initialHct.chroma.toFloat().coerceAtMost(MaxChroma)) }
-    // Carried along but never given a control: it keeps a hex the user typed round-tripping back
-    // to itself instead of snapping to some canonical lightness.
-    var tone by remember { mutableFloatStateOf(initialHct.tone.toFloat()) }
-    var hexText by remember { mutableStateOf(hexOf(initial)) }
+    // Saveable, because the sliders only reach prefs on release: without it a rotation mid-drag
+    // would snap the colour back to whatever seed was last written.
+    var hue by rememberSaveable { mutableFloatStateOf(initialHct.hue.toFloat()) }
+    var chroma by rememberSaveable { mutableFloatStateOf(initialHct.chroma.toFloat().coerceAtMost(MaxChroma)) }
+    var tone by rememberSaveable { mutableFloatStateOf(initialHct.tone.toFloat()) }
+    var hexText by rememberSaveable { mutableStateOf(hexOf(initial)) }
 
+    // What the sliders currently name, for the swatch and the style previews below. Composition
+    // only - see settle().
     val argb = Hct.from(hue.toDouble(), chroma.toDouble(), tone.toDouble()).argb
 
     // Written on release, not per frame: a commit() here recomposes the whole app synchronously,
     // which is the same reason the alarm sliders save in onValueChangeFinished.
-    fun persist() {
-        prefs.edit().putInt(
-            "themeColorValue",
-            Hct.from(hue.toDouble(), chroma.toDouble(), tone.toDouble()).argb,
-        ).commit()
-    }
-
+    //
+    // The seed is solved from the sliders here, at call time, and deliberately NOT read off the
+    // `argb` above, however duplicated that looks. This runs from a pointer callback, outside
+    // composition, so a value captured out of the enclosing composable is whatever the last
+    // completed composition computed - and the sliders sit in a LazyColumn item that recomposes on
+    // its own, so that lags a whole interaction behind the finger. saveAlarms() in
+    // AlarmsSettingsScreen reads its state delegates live for the same reason.
     fun settle() {
         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        hexText = hexOf(Hct.from(hue.toDouble(), chroma.toDouble(), tone.toDouble()).argb)
-        persist()
+        val seed = Hct.from(hue.toDouble(), chroma.toDouble(), tone.toDouble()).argb
+        hexText = hexOf(seed)
+        prefs.applyCustomSeed(seed)
     }
 
     SettingsScaffold(
@@ -101,7 +97,8 @@ fun ColorPickerScreen(navController: BeamNavController) {
     ) {
         item {
             val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
-            val preview = stylePreview(argb, style, isDark)
+            // Four more gamut searches, and only the seed and the light/dark mode move them.
+            val preview = remember(argb, style, isDark) { stylePreview(argb, style, isDark) }
             BeamCard(modifier = Modifier.fillMaxWidth(), shape = cardShapeSingle()) {
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     Box(
@@ -130,34 +127,68 @@ fun ColorPickerScreen(navController: BeamNavController) {
             }
         }
         item {
-            // A full-strength rainbow rather than the ramp at the current chroma and tone: this
-            // track picks a hue, and at zero saturation the honest version would be 37 identical
-            // greys with nothing to aim at. Fixed stops also mean no gamut searches at all here.
-            val hueStops = remember {
-                List(37) { Color(android.graphics.Color.HSVToColor(floatArrayOf(it * 10f, 1f, 1f))) }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                SubLabel(stringResource(R.string.colorHue))
+                Text(
+                    // 360 sanitizes to 0 in Hct, so the readout wraps with it rather than showing
+                    // 360 degrees over a red swatch.
+                    text = "${hue.roundToInt() % 360}°",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
-            SubLabel(stringResource(R.string.colorHue))
             Spacer(Modifier.height(8.dp))
-            GradientSlider(
-                colors = hueStops,
-                fraction = hue / 360f,
-                onChange = { hue = it * 360f },
-                onChangeFinished = { settle() },
+            Slider(
+                value = hue,
+                onValueChange = { hue = it },
+                onValueChangeFinished = { settle() },
+                valueRange = 0f..360f,
+                modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(LocalCardSpacing.current.group))
 
-            // Grey through to as much colour as this hue can hold. Rebuilt only when the hue or
-            // tone moves, never on a drag along this track itself.
-            val chromaStops = remember(hue, tone) {
-                List(9) { Color(Hct.from(hue.toDouble(), it * MaxChroma / 8.0, tone.toDouble()).argb) }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                SubLabel(stringResource(R.string.colorSaturation))
+                Text(
+                    text = "${(chroma / MaxChroma * 100).roundToInt()}%",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
-            SubLabel(stringResource(R.string.colorSaturation))
             Spacer(Modifier.height(8.dp))
-            GradientSlider(
-                colors = chromaStops,
-                fraction = chroma / MaxChroma,
-                onChange = { chroma = it * MaxChroma },
-                onChangeFinished = { settle() },
+            Slider(
+                value = chroma,
+                onValueChange = { chroma = it },
+                onValueChangeFinished = { settle() },
+                valueRange = 0f..MaxChroma,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(LocalCardSpacing.current.group))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                SubLabel(stringResource(R.string.colorBrightness))
+                Text(
+                    text = "${tone.roundToInt()}%",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Slider(
+                value = tone,
+                onValueChange = { tone = it },
+                onValueChangeFinished = { settle() },
+                valueRange = 0f..100f,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
         item {
@@ -178,7 +209,7 @@ fun ColorPickerScreen(navController: BeamNavController) {
                         hue = hct.hue.toFloat()
                         chroma = hct.chroma.toFloat().coerceAtMost(MaxChroma)
                         tone = hct.tone.toFloat()
-                        prefs.edit().putInt("themeColorValue", parsed).commit()
+                        prefs.applyCustomSeed(parsed)
                     }
                 },
                 label = { Text(stringResource(R.string.colorHex)) },
@@ -192,63 +223,11 @@ fun ColorPickerScreen(navController: BeamNavController) {
 }
 
 /**
- * Where the saturation track tops out. Past roughly this much chroma the palette generator stops
- * responding, so carrying the slider further would be a control that moves nothing.
+ * Where the saturation track tops out. sRGB's most chromatic colour sits near 113 (red), so this
+ * covers the whole gamut; Hct clamps chroma to what the gamut holds at a given hue and tone, so
+ * the top of the track is deliberately inert for many hue/brightness combinations.
  */
-private const val MaxChroma = 72f
+private const val MaxChroma = 120f
 
 private fun hexOf(argb: Int): String = "#%06X".format(argb and 0xFFFFFF)
 
-/**
- * A colour ramp you drag a thumb along. Both the hue and the saturation track are this - they
- * differ only in the stops they're given and what they do with the fraction that comes back.
- */
-@Composable
-private fun GradientSlider(
-    colors: List<Color>,
-    fraction: Float,
-    onChange: (Float) -> Unit,
-    onChangeFinished: () -> Unit,
-) {
-    Canvas(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(36.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .pointerInput(Unit) {
-                detectTapGestures { pos ->
-                    onChange((pos.x / size.width).coerceIn(0f, 1f))
-                    onChangeFinished()
-                }
-            }
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragStart = { pos -> onChange((pos.x / size.width).coerceIn(0f, 1f)) },
-                    onDragEnd = onChangeFinished,
-                    onDragCancel = onChangeFinished,
-                ) { change, _ ->
-                    change.consume()
-                    onChange((change.position.x / size.width).coerceIn(0f, 1f))
-                }
-            },
-    ) {
-        drawRect(Brush.horizontalGradient(colors))
-        val half = 4.dp.toPx()
-        val inset = 3.dp.toPx()
-        val x = (fraction.coerceIn(0f, 1f) * size.width).coerceIn(half + inset, size.width - half - inset)
-        // A dark bar under a light one, so the thumb survives both the pale end of a ramp and the
-        // near-black one.
-        drawRoundRect(
-            color = Color.Black.copy(alpha = 0.45f),
-            topLeft = Offset(x - half - 1.dp.toPx(), inset - 1.dp.toPx()),
-            size = Size(half * 2 + 2.dp.toPx(), size.height - inset * 2 + 2.dp.toPx()),
-            cornerRadius = CornerRadius(half + 1.dp.toPx()),
-        )
-        drawRoundRect(
-            color = Color.White,
-            topLeft = Offset(x - half, inset),
-            size = Size(half * 2, size.height - inset * 2),
-            cornerRadius = CornerRadius(half),
-        )
-    }
-}

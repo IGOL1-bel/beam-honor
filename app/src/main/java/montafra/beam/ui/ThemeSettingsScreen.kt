@@ -9,7 +9,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -39,7 +38,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -49,14 +47,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -64,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import montafra.beam.BeamFont
 import montafra.beam.R
 import montafra.beam.applyNightMode
+import montafra.beam.defaultFontKey
 import montafra.beam.settingsName
 import montafra.beam.settingsUpdateInd
 import montafra.beam.ui.theme.BeamCard
@@ -73,32 +69,35 @@ import montafra.beam.ui.theme.ColorStyle
 import montafra.beam.ui.theme.LocalCardSpacing
 import montafra.beam.ui.theme.LocalOutlineOnlyCards
 import montafra.beam.ui.theme.StylePreview
+import montafra.beam.ui.theme.applyCustomSeed
 import montafra.beam.ui.theme.cardShapeBottom
 import montafra.beam.ui.theme.cardShapeMiddle
 import montafra.beam.ui.theme.cardShapeSingle
 import montafra.beam.ui.theme.cardShapeTop
-import montafra.beam.ui.theme.defaultSeedColor
+import montafra.beam.ui.theme.customSeed
 import montafra.beam.ui.theme.fallbackSeedColor
 import montafra.beam.ui.theme.fontFamilyFor
-import montafra.beam.ui.theme.rememberCardInteraction
 import montafra.beam.ui.theme.stylePreview
+import montafra.beam.ui.theme.themeColorIsAuto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThemeSettingsScreen(navController: BeamNavController) {
     val context = LocalContext.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalTapHaptics.current
     val prefs = remember { context.getSharedPreferences(settingsName, Context.MODE_PRIVATE) }
 
     var themeMode by remember { mutableStateOf(prefs.getString("themeMode", "system") ?: "system") }
-    var customColorValue by remember { mutableIntStateOf(prefs.getInt("themeColorValue", defaultSeedColor)) }
+    // The seed outlives a trip through "Auto", so it is always a real colour and never a sentinel.
+    var autoColor by remember { mutableStateOf(prefs.themeColorIsAuto()) }
+    var customColorValue by remember { mutableIntStateOf(prefs.customSeed()) }
     var colorStyle by remember { mutableStateOf(ColorStyle.forKey(prefs.getString("themeColorStyle", null))) }
     var heroBacklight by remember { mutableStateOf(prefs.getBoolean("heroBacklight", true)) }
     var showChargeLevel by remember { mutableStateOf(prefs.getBoolean("showChargeLevel", true)) }
     var hapticsEnabled by remember { mutableStateOf(prefs.getBoolean("hapticsEnabled", true)) }
     var soundEnabled by remember { mutableStateOf(prefs.getBoolean("soundEnabled", true)) }
     var keepScreenOn by remember { mutableStateOf(prefs.getBoolean("keepScreenOn", false)) }
-    var fontFamily by remember { mutableStateOf(prefs.getString("fontFamily", "default") ?: "default") }
+    var fontFamily by remember { mutableStateOf(prefs.getString("fontFamily", defaultFontKey) ?: defaultFontKey) }
     var outlineOnlyCards by remember { mutableStateOf(prefs.getBoolean("outlineOnlyCards", false)) }
 
     SettingsScaffold(
@@ -141,16 +140,24 @@ fun ThemeSettingsScreen(navController: BeamNavController) {
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     colorOptions.forEachIndexed { i, label ->
                         SegmentedButton(
-                            selected = if (i == 0) customColorValue == -1 else customColorValue != -1,
+                            selected = if (i == 0) autoColor else !autoColor,
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                if (i == 0) {
-                                    customColorValue = -1
-                                    prefs.edit().putInt("themeColorValue", -1).commit()
+                                autoColor = i == 0
+                                if (autoColor) {
+                                    // The seed stays where it is - that is the whole reason
+                                    // "Custom" comes back to the colour it had. Writing it back
+                                    // unchanged next to the flag is also what heals prefs still
+                                    // holding the old -1 sentinel: once themeColorAuto exists,
+                                    // customSeed() reads a stored -1 as the colour white.
+                                    prefs.edit()
+                                        .putInt("themeColorValue", customColorValue)
+                                        .putBoolean("themeColorAuto", true)
+                                        .commit()
                                 } else {
-                                    val color = if (customColorValue != -1) customColorValue else defaultSeedColor
-                                    customColorValue = color
-                                    prefs.edit().putInt("themeColorValue", color).commit()
+                                    // Same pair of keys the other way round, so the sentinel is
+                                    // healed on this path too.
+                                    prefs.applyCustomSeed(customColorValue)
                                 }
                             },
                             shape = SegmentedButtonDefaults.itemShape(i, colorOptions.size),
@@ -159,68 +166,60 @@ fun ThemeSettingsScreen(navController: BeamNavController) {
                     }
                 }
                 AnimatedVisibility(
-                    visible = customColorValue != -1,
+                    visible = !autoColor,
                     enter = expandVertically() + fadeIn(),
                     exit = shrinkVertically() + fadeOut(),
                 ) {
                     Column(modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
                         ColorSwatchPicker(
-                            selectedColor = customColorValue.takeIf { it != -1 },
+                            selectedColor = customColorValue,
                             onColorSelected = { color ->
                                 customColorValue = color
-                                prefs.edit().putInt("themeColorValue", color).commit()
+                                prefs.applyCustomSeed(color)
                             },
                         )
                         Spacer(Modifier.height(12.dp))
                         CustomColorButton(
-                            color = customColorValue.takeIf { it != -1 } ?: defaultSeedColor,
+                            color = customColorValue,
                             onClick = { navController.navigate("settings/theme/color") },
                         )
                     }
                 }
-                Spacer(Modifier.height(LocalCardSpacing.current.group))
-                SubLabel(stringResource(R.string.colorStyle))
-                Spacer(Modifier.height(8.dp))
-                // Below API 31 "Auto" still resolves to a scheme the app generates itself, so a
-                // style genuinely applies there. Only the wallpaper palette is the system's to
-                // decide, and restyling it would stop it matching the wallpaper.
-                val styleEnabled = customColorValue != -1 || Build.VERSION.SDK_INT < 31
-                ColorStyleRow(
-                    // On Auto below API 31 the real seed is the fallback, and previewing off the
-                    // live primary instead would shift an already-shifted hue a second time.
-                    // Above it the wallpaper palette has no seed to recover, so its primary is the
-                    // closest honest stand-in - and the row is dimmed there anyway.
-                    seedColor = customColorValue.takeIf { it != -1 }
-                        ?: if (Build.VERSION.SDK_INT < 31) {
-                            fallbackSeedColor
-                        } else {
-                            MaterialTheme.colorScheme.primary.toArgb()
-                        },
-                    selected = colorStyle,
-                    enabled = styleEnabled,
-                    onStyleSelected = { style ->
-                        colorStyle = style
-                        prefs.edit().putString("themeColorStyle", style.key).commit()
-                    },
-                )
+                // Auto below API 31 has no wallpaper palette to read, so BeamTheme generates the
+                // fallback seed itself - and puts the colour style through it. The row has to stay
+                // reachable there, or the setting goes on applying with no way to change it.
                 AnimatedVisibility(
-                    visible = !styleEnabled,
+                    visible = !autoColor || Build.VERSION.SDK_INT < 31,
                     enter = expandVertically() + fadeIn(),
                     exit = shrinkVertically() + fadeOut(),
                 ) {
-                    Text(
-                        stringResource(R.string.colorStyleAutoHint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            // Nothing above it when auto is on, so it takes the swatch section's
+                            // own top gap rather than the gap that sits between two sections.
+                            .padding(top = if (autoColor) 16.dp else LocalCardSpacing.current.group),
+                    ) {
+                        SubLabel(stringResource(R.string.colorStyle))
+                        Spacer(Modifier.height(8.dp))
+                        ColorStyleRow(
+                            // The previews restyle the seed actually in use: under auto that is the
+                            // pre-31 fallback, not the custom colour sitting unused behind it.
+                            seedColor = if (autoColor) fallbackSeedColor else customColorValue,
+                            selected = colorStyle,
+                            onStyleSelected = { style ->
+                                colorStyle = style
+                                prefs.edit().putString("themeColorStyle", style.key).commit()
+                            },
+                        )
+                    }
                 }
             }
             item {
                 SubLabel(stringResource(R.string.customization))
                 Spacer(Modifier.height(8.dp))
                 val fontKeys = remember { listOf("default") + BeamFont.entries.map { it.key } }
-                val fontLabels = listOf(stringResource(R.string.fontDefault)) + BeamFont.entries.map { it.label }
+                val fontLabels = listOf(stringResource(R.string.fontSystem)) + BeamFont.entries.map { it.label }
                 // Each entry previews itself, so the families are built once rather than on
                 // every recomposition of the row and of every open menu item.
                 val fontFamilies = remember(context) { fontKeys.map { fontFamilyFor(context, it) } }
@@ -234,10 +233,7 @@ fun ThemeSettingsScreen(navController: BeamNavController) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable(
-                                interactionSource = rememberCardInteraction(),
-                                indication = LocalIndication.current,
-                            ) {
+                            .clickable {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 fontMenuExpanded = true
                             }
@@ -293,11 +289,11 @@ fun ThemeSettingsScreen(navController: BeamNavController) {
                 }
                 CardGap()
                 BeamCard(modifier = Modifier.fillMaxWidth(), shape = cardShapeMiddle()) {
-                    ThemeToggleRow(
+                    ToggleSettingRow(
                         title = stringResource(R.string.outlinedCards),
                         description = stringResource(R.string.outlinedCardsDesc),
                         checked = outlineOnlyCards,
-                        onToggle = {
+                        onCheckedChange = {
                             outlineOnlyCards = it
                             prefs.edit().putBoolean("outlineOnlyCards", it).commit()
                         },
@@ -333,11 +329,11 @@ fun ThemeSettingsScreen(navController: BeamNavController) {
                 }
                 CardGap()
                 BeamCard(modifier = Modifier.fillMaxWidth(), shape = cardShapeMiddle()) {
-                    ThemeToggleRow(
+                    ToggleSettingRow(
                         title = stringResource(R.string.hapticsEnabled),
                         description = stringResource(R.string.hapticsEnabledDesc),
                         checked = hapticsEnabled,
-                        onToggle = {
+                        onCheckedChange = {
                             hapticsEnabled = it
                             prefs.edit().putBoolean("hapticsEnabled", it).commit()
                         },
@@ -348,11 +344,11 @@ fun ThemeSettingsScreen(navController: BeamNavController) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = cardShapeBottom(),
                 ) {
-                    ThemeToggleRow(
+                    ToggleSettingRow(
                         title = stringResource(R.string.soundEnabled),
                         description = stringResource(R.string.soundEnabledDesc),
                         checked = soundEnabled,
-                        onToggle = {
+                        onCheckedChange = {
                             soundEnabled = it
                             prefs.edit().putBoolean("soundEnabled", it).commit()
                         },
@@ -366,11 +362,11 @@ fun ThemeSettingsScreen(navController: BeamNavController) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = cardShapeTop(),
                 ) {
-                    ThemeToggleRow(
+                    ToggleSettingRow(
                         title = stringResource(R.string.heroBacklight),
                         description = stringResource(R.string.heroBacklightDesc),
                         checked = heroBacklight,
-                        onToggle = {
+                        onCheckedChange = {
                             heroBacklight = it
                             prefs.edit().putBoolean("heroBacklight", it).commit()
                         },
@@ -378,11 +374,11 @@ fun ThemeSettingsScreen(navController: BeamNavController) {
                 }
                 CardGap()
                 BeamCard(modifier = Modifier.fillMaxWidth(), shape = cardShapeMiddle()) {
-                    ThemeToggleRow(
+                    ToggleSettingRow(
                         title = stringResource(R.string.chargeLevel),
                         description = stringResource(R.string.heroChargeLevelDesc),
                         checked = showChargeLevel,
-                        onToggle = {
+                        onCheckedChange = {
                             showChargeLevel = it
                             prefs.edit().putBoolean("showChargeLevel", it).commit()
                         },
@@ -393,11 +389,11 @@ fun ThemeSettingsScreen(navController: BeamNavController) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = cardShapeBottom(),
                 ) {
-                    ThemeToggleRow(
+                    ToggleSettingRow(
                         title = stringResource(R.string.keepScreenOn),
                         description = stringResource(R.string.keepScreenOnDesc),
                         checked = keepScreenOn,
-                        onToggle = {
+                        onCheckedChange = {
                             keepScreenOn = it
                             prefs.edit().putBoolean("keepScreenOn", it).commit()
                         },
@@ -414,7 +410,7 @@ fun ThemeSettingsScreen(navController: BeamNavController) {
  */
 @Composable
 private fun CustomColorButton(color: Int, onClick: () -> Unit) {
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalTapHaptics.current
     val outlineOnly = LocalOutlineOnlyCards.current
     val seed = Color(color)
     FilledTonalButton(
@@ -476,7 +472,6 @@ private fun CustomColorButton(color: Int, onClick: () -> Unit) {
 private fun ColorStyleRow(
     seedColor: Int,
     selected: ColorStyle,
-    enabled: Boolean,
     onStyleSelected: (ColorStyle) -> Unit,
 ) {
     val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
@@ -488,8 +483,7 @@ private fun ColorStyleRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .alpha(if (enabled) 1f else 0.38f),
+            .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         ColorStyle.entries.forEach { style ->
@@ -497,7 +491,6 @@ private fun ColorStyleRow(
                 preview = previews.getValue(style),
                 label = stringResource(style.labelRes),
                 selected = style == selected,
-                enabled = enabled,
                 onClick = { onStyleSelected(style) },
             )
         }
@@ -509,10 +502,9 @@ private fun ColorStyleChip(
     preview: StylePreview,
     label: String,
     selected: Boolean,
-    enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalTapHaptics.current
     Column(
         modifier = Modifier.width(76.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -526,7 +518,7 @@ private fun ColorStyleChip(
                 .background(if (selected) MaterialTheme.colorScheme.onSurface else Color.Transparent)
                 .padding(if (selected) 3.dp else 0.dp)
                 .clip(RoundedCornerShape(if (selected) 17.dp else 20.dp))
-                .clickable(enabled = enabled) {
+                .clickable {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onClick()
                 },
@@ -565,42 +557,3 @@ private fun ColorStyleChip(
     }
 }
 
-@Composable
-private fun ThemeToggleRow(
-    title: String,
-    description: String,
-    checked: Boolean,
-    onToggle: (Boolean) -> Unit,
-) {
-    val haptic = LocalHapticFeedback.current
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(
-                interactionSource = rememberCardInteraction(),
-                indication = LocalIndication.current,
-            ) {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onToggle(!checked)
-            }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onToggle(it)
-            },
-            modifier = Modifier.padding(start = 16.dp),
-        )
-    }
-}

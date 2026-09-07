@@ -29,8 +29,8 @@
     <string name="colorHex">Hex</string>
     <string name="colorHue">Farbton</string>
     <string name="colorSaturation">Sättigung</string>
+    <string name="colorBrightness">Helligkeit</string>
     <string name="colorStyle">Farbstil</string>
-    <string name="colorStyleAutoHint">Farbstile gelten für eigene Farben</string>
     <string name="colorStyleTonalSpot">Tonal</string>
     <string name="colorStyleNeutral">Neutral</string>
     <string name="colorStyleVibrant">Lebhaft</string>
@@ -59,6 +59,8 @@
     <string name="supportMe">Entwicklung unterstützen</string>
     <string name="supportMeDesc">Hilf mit, meine Projekte zu unterstützen 🐢</string>
     <string name="openInBrowser">Im Browser öffnen</string>
+    <string name="openInWallet">In Wallet öffnen</string>
+    <string name="noWalletApp">Keine Wallet-App gefunden, Adresse kopiert</string>
     <string name="copy">Kopieren</string>
     <string name="about">Über</string>
     <string name="language">Sprache</string>
@@ -95,7 +97,7 @@
     <string name="soundEnabledDesc">Klickton bei Berührung abspielen</string>
     <string name="whatsNew">Neuigkeiten</string>
     <string name="font">Schriftart</string>
-    <string name="fontDefault">Standard</string>
+    <string name="fontSystem">System</string>
     <string name="fontDesc">Schriftart, die in der gesamten App verwendet wird</string>
     <string name="widgetTempLabel">Akkutemperatur</string>
     <string name="versionLicenseLinks">Version, Lizenz &amp; Links</string>
@@ -122,6 +124,7 @@
     <string name="alarms">Akku-Alarme</string>
     <string name="alarmsShortDesc">Warnungen zu Ladestand und Temperatur</string>
     <string name="alarmsDesc">Lass dich benachrichtigen, wenn der Akku einen von dir festgelegten Stand oder eine Temperatur erreicht. Alarme funktionieren auch bei ausgeschaltetem Bildschirm.</string>
+    <string name="alarmsNeedNotifications">Benachrichtigungen sind blockiert oder die Statusbenachrichtigung ist deaktiviert – Alarme können dich derzeit nicht warnen.</string>
     <string name="alarmLow">Niedriger Akkustand</string>
     <string name="alarmLowDesc">Benachrichtigen, wenn der Stand auf diesen Prozentwert fällt und nicht geladen wird</string>
     <string name="alarmHigh">Ziel-Ladestand</string>

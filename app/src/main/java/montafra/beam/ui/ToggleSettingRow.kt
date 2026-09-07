@@ -1,6 +1,5 @@
 package montafra.beam.ui
 
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,9 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
-import montafra.beam.ui.theme.rememberCardInteraction
 
 /**
  * A settings toggle row that keeps the trailing [Switch] (and optional leading icon)
@@ -45,7 +42,7 @@ fun ToggleSettingRow(
     leadingIcon: Painter? = null,
     onHaptic: ((Boolean) -> Unit)? = null,
 ) {
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalTapHaptics.current
     val performHaptic: (Boolean) -> Unit =
         onHaptic ?: { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) }
     val toggle = { next: Boolean ->
@@ -55,10 +52,7 @@ fun ToggleSettingRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(
-                interactionSource = rememberCardInteraction(),
-                indication = LocalIndication.current,
-            ) { toggle(!checked) }
+            .clickable { toggle(!checked) }
             .heightIn(min = 72.dp)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,

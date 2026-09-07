@@ -1,6 +1,7 @@
 package montafra.beam.ui
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -10,6 +11,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.view.HapticFeedbackConstants
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -19,7 +21,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -44,9 +45,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,7 +57,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -74,13 +76,14 @@ import montafra.beam.ui.theme.cardShapeBottom
 import montafra.beam.ui.theme.cardShapeMiddle
 import montafra.beam.ui.theme.cardShapeSingle
 import montafra.beam.ui.theme.cardShapeTop
-import montafra.beam.ui.theme.rememberCardInteraction
+import montafra.beam.ui.theme.defaultSeedColor
+import montafra.beam.ui.theme.hct.Hct
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SettingsScreen(navController: BeamNavController) {
     val context = LocalContext.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalTapHaptics.current
     val view = LocalView.current
     val prefs = remember { context.getSharedPreferences(settingsName, Context.MODE_PRIVATE) }
 
@@ -88,7 +91,7 @@ fun SettingsScreen(navController: BeamNavController) {
     val playTapSound = rememberTapSound()
     val notificationToggleHaptic = { enabled: Boolean ->
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // This branch bypasses LocalHapticFeedback, so the tap sound has to be played by hand.
+            // This branch bypasses LocalTapHaptics, so the tap sound has to be played by hand.
             playTapSound()
             if (hapticsEnabled) {
                 view.performHapticFeedback(
@@ -102,7 +105,9 @@ fun SettingsScreen(navController: BeamNavController) {
     val clipboardManager = remember {
         context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     }
-    var showDonateDialog by remember { mutableStateOf(false) }
+    // The sheet flags are saveable: the activity is recreated on rotation now that the portrait
+    // lock is gone, and an open sheet vanishing under the user is not a rotation.
+    var showDonateDialog by rememberSaveable { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var notificationEnabled by remember { mutableStateOf(prefs.getBoolean("notificationEnabled", true)) }
     val version = remember {
@@ -113,10 +118,18 @@ fun SettingsScreen(navController: BeamNavController) {
         try { context.packageManager.getPackageInfo(context.packageName, 0).longVersionCode.toInt() }
         catch (_: Exception) { 0 }
     }
-    var showChangelog by remember { mutableStateOf(false) }
+    var showChangelog by rememberSaveable { mutableStateOf(false) }
+    // The entries themselves aren't saveable, so a restored sheet refills them below rather than
+    // carrying the whole parsed changelog through the bundle.
     var changelogEntries by remember { mutableStateOf(emptyList<ChangelogEntry>()) }
-    var showAppInfo by remember { mutableStateOf(false) }
+    var showAppInfo by rememberSaveable { mutableStateOf(false) }
     val appInfoSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    LaunchedEffect(showChangelog) {
+        if (showChangelog && changelogEntries.isEmpty()) {
+            changelogEntries = loadChangelogs(context, 0, currentVersionCode)
+        }
+    }
 
     val applyNotificationEnabled = { enabled: Boolean ->
         notificationEnabled = enabled
@@ -189,10 +202,7 @@ fun SettingsScreen(navController: BeamNavController) {
                                     )
                                 },
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                                modifier = Modifier.clickable(
-                                    interactionSource = rememberCardInteraction(),
-                                    indication = LocalIndication.current,
-                                ) {
+                                modifier = Modifier.clickable {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     navController.navigate("settings/notification")
                                 },
@@ -218,10 +228,7 @@ fun SettingsScreen(navController: BeamNavController) {
                             )
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        modifier = Modifier.clickable(
-                            interactionSource = rememberCardInteraction(),
-                            indication = LocalIndication.current,
-                        ) {
+                        modifier = Modifier.clickable {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             navController.navigate("settings/theme")
                         },
@@ -245,10 +252,7 @@ fun SettingsScreen(navController: BeamNavController) {
                                 )
                             },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                            modifier = Modifier.clickable(
-                                interactionSource = rememberCardInteraction(),
-                                indication = LocalIndication.current,
-                            ) {
+                            modifier = Modifier.clickable {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 try {
                                     context.startActivity(
@@ -285,10 +289,7 @@ fun SettingsScreen(navController: BeamNavController) {
                             )
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        modifier = Modifier.clickable(
-                            interactionSource = rememberCardInteraction(),
-                            indication = LocalIndication.current,
-                        ) {
+                        modifier = Modifier.clickable {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             navController.navigate("settings/workarounds")
                         },
@@ -315,10 +316,7 @@ fun SettingsScreen(navController: BeamNavController) {
                             )
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        modifier = Modifier.clickable(
-                            interactionSource = rememberCardInteraction(),
-                            indication = LocalIndication.current,
-                        ) {
+                        modifier = Modifier.clickable {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             showDonateDialog = true
                         },
@@ -340,10 +338,7 @@ fun SettingsScreen(navController: BeamNavController) {
                             )
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        modifier = Modifier.clickable(
-                            interactionSource = rememberCardInteraction(),
-                            indication = LocalIndication.current,
-                        ) {
+                        modifier = Modifier.clickable {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             showAppInfo = true
                         },
@@ -392,6 +387,7 @@ fun SettingsScreen(navController: BeamNavController) {
                         address = "liberapay.com/montafra",
                         clipboard = clipboardManager,
                         shape = cardShapeTop(),
+                        iconRes = R.drawable.ico_liberapay,
                         actionIconRes = R.drawable.ico_open_in_new,
                         actionContentDescRes = R.string.openInBrowser,
                         onActionClick = {
@@ -406,11 +402,11 @@ fun SettingsScreen(navController: BeamNavController) {
                         },
                     )
                     CardGap()
-                    DonateCard("Bitcoin", "bc1q7v38g2xn7wxtwn6ewde4kydn5emjr3zt73ew96", clipboardManager, cardShapeMiddle())
+                    CryptoDonateCard("Bitcoin", "bitcoin", "bc1q7v38g2xn7wxtwn6ewde4kydn5emjr3zt73ew96", clipboardManager, cardShapeMiddle(), R.drawable.ico_btc)
                     CardGap()
-                    DonateCard("Monero", "876wwukGWhU9H6qez4Qmt5gTBBmdKzoDg3zvT33QCwjy9e7jS7MVjQySUCpNhoVrFcF15AicUJ4VaVrTKAXGMu5D7yUbqFs", clipboardManager, cardShapeMiddle())
+                    CryptoDonateCard("Monero", "monero", "876wwukGWhU9H6qez4Qmt5gTBBmdKzoDg3zvT33QCwjy9e7jS7MVjQySUCpNhoVrFcF15AicUJ4VaVrTKAXGMu5D7yUbqFs", clipboardManager, cardShapeMiddle(), R.drawable.ico_xmr)
                     CardGap()
-                    DonateCard("Lightning", "monta@cake.cash", clipboardManager, cardShapeBottom())
+                    CryptoDonateCard("Lightning", "lightning", "monta@cake.cash", clipboardManager, cardShapeBottom(), R.drawable.ico_lightning)
                 }
                 Spacer(Modifier.height(16.dp))
             }
@@ -440,10 +436,7 @@ fun SettingsScreen(navController: BeamNavController) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .clickable(
-                                interactionSource = rememberCardInteraction(),
-                                indication = LocalIndication.current,
-                            ) {
+                            .clickable {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 context.startActivity(
                                     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))
@@ -512,10 +505,7 @@ fun SettingsScreen(navController: BeamNavController) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable(
-                                        interactionSource = rememberCardInteraction(),
-                                        indication = LocalIndication.current,
-                                    ) {
+                                    .clickable {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         showAppInfo = false
                                         changelogEntries = loadChangelogs(context, 0, currentVersionCode)
@@ -674,12 +664,33 @@ internal fun SubLabel(text: String) {
     )
 }
 
-internal val colorSwatches = listOf(
-    0xFFE53935, 0xFFF4511E, 0xFFFB8C00,
-    0xFFFFB300, 0xFF7CB342, 0xFF43A047,
-    0xFF00897B, 0xFF00ACC1, 0xFF1E88E5,
-    0xFF3949AB, 0xFF8E24AA, 0xFFD81B60,
-).map { it.toInt() }
+/** Where [defaultSeedColor] sits in [colorSwatches], and the hue the other eleven turn around. */
+private const val DefaultSwatchIndex = 6
+
+/**
+ * The twelve presets: a full turn of hue in 30 degree steps at the default seed's own chroma and
+ * tone, so the grid reads as one ramp rather than twelve unrelated colours - warm across the top
+ * row, cool across the bottom.
+ *
+ * The anchor is the literal [defaultSeedColor], not a generated colour, because [ColorSwatchPicker]
+ * marks the selection by exact identity and a gamut round trip does not always land back on the
+ * ARGB it started from - generating it would leave a fresh install with nothing selected.
+ *
+ * Hct.from clamps chroma to whatever sRGB actually holds at each hue and tone, so the cool half
+ * comes out gentler than the warm half. That is the shape of the gamut, not a bug.
+ *
+ * Lazy, not eager: eleven gamut searches in this file's static initializer would be paid on the
+ * main thread by every screen that touches anything top-level here, [SubLabel] included. Deferred,
+ * only the Theme screen that actually draws the grid pays for it.
+ */
+private val colorSwatches: List<Int> by lazy {
+    Hct.fromInt(defaultSeedColor).let { seed ->
+        List(12) { i ->
+            if (i == DefaultSwatchIndex) defaultSeedColor
+            else Hct.from(seed.hue + (i - DefaultSwatchIndex) * 30.0, seed.chroma, seed.tone).argb
+        }
+    }
+}
 
 @Composable
 internal fun ColorSwatchPicker(
@@ -697,6 +708,48 @@ internal fun ColorSwatchPicker(
     }
 }
 
+/**
+ * A crypto donation row: a tap hands the address straight to a wallet app through its URI scheme,
+ * a long press copies the raw address - the same split the Liberapay row above it uses.
+ *
+ * Not having a wallet for a given chain is the ordinary case here rather than the edge one, so a
+ * missing handler isn't guarded against so much as answered: copy the address and say why nothing
+ * opened. Catching the exception also keeps the manifest clean, since package visibility only
+ * restricts resolveActivity(), never launching an implicit intent.
+ */
+@Composable
+private fun CryptoDonateCard(
+    label: String,
+    scheme: String,
+    address: String,
+    clipboard: ClipboardManager,
+    shape: androidx.compose.ui.graphics.Shape,
+    iconRes: Int,
+) {
+    val context = LocalContext.current
+    // Resolved out here: a click lambda is not a composable scope.
+    val noWallet = stringResource(R.string.noWalletApp)
+    DonateCard(
+        label = label,
+        address = address,
+        clipboard = clipboard,
+        shape = shape,
+        iconRes = iconRes,
+        actionIconRes = R.drawable.ico_open_in_new,
+        actionContentDescRes = R.string.openInWallet,
+        onActionClick = { cb ->
+            try {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("$scheme:$address")))
+            } catch (_: ActivityNotFoundException) {
+                cb.setPrimaryClip(ClipData.newPlainText(label, address))
+                Toast.makeText(context, noWallet, Toast.LENGTH_SHORT).show()
+            }
+        },
+        // The bare address, not the URI - it's what a wallet elsewhere expects pasted in.
+        onLongClick = { cb -> cb.setPrimaryClip(ClipData.newPlainText(label, address)) },
+    )
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DonateCard(
@@ -704,6 +757,7 @@ private fun DonateCard(
     address: String,
     clipboard: ClipboardManager,
     shape: androidx.compose.ui.graphics.Shape = cardShapeSingle(),
+    iconRes: Int? = null,
     actionIconRes: Int = R.drawable.ico_copy,
     actionContentDescRes: Int = R.string.copy,
     onActionClick: (ClipboardManager) -> Unit = {
@@ -711,14 +765,7 @@ private fun DonateCard(
     },
     onLongClick: ((ClipboardManager) -> Unit)? = null,
 ) {
-    val haptic = LocalHapticFeedback.current
-    val iconRes = when (label) {
-        "Liberapay" -> R.drawable.ico_liberapay
-        "Bitcoin" -> R.drawable.ico_btc
-        "Monero" -> R.drawable.ico_xmr
-        "Lightning" -> R.drawable.ico_lightning
-        else -> null
-    }
+    val haptic = LocalTapHaptics.current
     BeamCard(
         modifier = Modifier.fillMaxWidth(),
         shape = shape,
@@ -791,7 +838,7 @@ private fun DonateCard(
 
 @Composable
 internal fun ColorSwatch(color: Int, selected: Boolean, onClick: () -> Unit) {
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalTapHaptics.current
     Box(
         modifier = Modifier
             .size(44.dp)

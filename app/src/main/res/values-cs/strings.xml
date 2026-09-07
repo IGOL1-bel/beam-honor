@@ -29,8 +29,8 @@
     <string name="colorHex">Hex</string>
     <string name="colorHue">Odstín</string>
     <string name="colorSaturation">Sytost</string>
+    <string name="colorBrightness">Jas</string>
     <string name="colorStyle">Styl barev</string>
-    <string name="colorStyleAutoHint">Styly barev platí pro vlastní barvy</string>
     <string name="colorStyleTonalSpot">Tonální</string>
     <string name="colorStyleNeutral">Neutrální</string>
     <string name="colorStyleVibrant">Živý</string>
@@ -59,6 +59,8 @@
     <string name="supportMe">Podpořit vývoj</string>
     <string name="supportMeDesc">Pomozte podpořit mé projekty 🐢</string>
     <string name="openInBrowser">Otevřít v prohlížeči</string>
+    <string name="openInWallet">Otevřít v peněžence</string>
+    <string name="noWalletApp">Nebyla nalezena žádná peněženka, adresa zkopírována</string>
     <string name="copy">Kopírovat</string>
     <string name="about">O aplikaci</string>
     <string name="language">Jazyk</string>
@@ -93,7 +95,7 @@
     <string name="soundEnabledDesc">Přehrát zvuk kliknutí při klepnutí</string>
     <string name="whatsNew">Co je nového</string>
     <string name="font">Písmo</string>
-    <string name="fontDefault">Výchozí</string>
+    <string name="fontSystem">Systémové</string>
     <string name="fontDesc">Písmo použité v celé aplikaci</string>
     <string name="outlinedCards">Obrysové karty</string>
     <string name="outlinedCardsDesc">Zobrazit karty s obrysem místo vyplněného pozadí</string>
@@ -120,6 +122,7 @@
     <string name="alarms">Upozornění baterie</string>
     <string name="alarmsShortDesc">Upozornění na vybití, nabití a teplotu</string>
     <string name="alarmsDesc">Dostávejte upozornění, když baterie dosáhne nastavené úrovně nebo teploty. Upozornění fungují i při vypnuté obrazovce.</string>
+    <string name="alarmsNeedNotifications">Oznámení jsou blokována nebo je stavové oznámení vypnuté – alarmy vás nyní nemohou upozornit.</string>
     <string name="alarmLow">Nízká baterie</string>
     <string name="alarmLowDesc">Upozornit, když úroveň klesne na toto procento a baterie se nenabíjí</string>
     <string name="alarmHigh">Cílové nabití</string>

@@ -29,8 +29,8 @@
     <string name="colorHex">Hex</string>
     <string name="colorHue">Matiz</string>
     <string name="colorSaturation">Saturação</string>
+    <string name="colorBrightness">Brilho</string>
     <string name="colorStyle">Estilo de cor</string>
-    <string name="colorStyleAutoHint">Os estilos de cor se aplicam a cores personalizadas</string>
     <string name="colorStyleTonalSpot">Tonal</string>
     <string name="colorStyleNeutral">Neutro</string>
     <string name="colorStyleVibrant">Vibrante</string>
@@ -59,6 +59,8 @@
     <string name="supportMe">Apoiar o desenvolvimento</string>
     <string name="supportMeDesc">Ajude a apoiar meus projetos 🐢</string>
     <string name="openInBrowser">Abrir no navegador</string>
+    <string name="openInWallet">Abrir na carteira</string>
+    <string name="noWalletApp">Nenhuma carteira encontrada, endereço copiado</string>
     <string name="copy">Copiar</string>
     <string name="about">Sobre</string>
     <string name="language">Idioma</string>
@@ -91,7 +93,7 @@
     <string name="soundEnabledDesc">Reproduzir um clique ao tocar</string>
     <string name="whatsNew">Novidades</string>
     <string name="font">Fonte</string>
-    <string name="fontDefault">Padrão</string>
+    <string name="fontSystem">Sistema</string>
     <string name="fontDesc">Tipografia usada em todo o aplicativo</string>
     <string name="outlinedCards">Cartões com borda</string>
     <string name="outlinedCardsDesc">Exibir cartões com borda em vez de fundo preenchido</string>
@@ -120,6 +122,7 @@
     <string name="alarms">Alarmes de bateria</string>
     <string name="alarmsShortDesc">Alertas de carga, descarga e temperatura</string>
     <string name="alarmsDesc">Receba uma notificação quando a bateria atingir um nível ou temperatura definidos. Os alarmes funcionam mesmo com a tela desligada.</string>
+    <string name="alarmsNeedNotifications">As notificações estão bloqueadas ou a notificação de status está desativada: os alarmes não podem avisar você no momento.</string>
     <string name="alarmLow">Bateria fraca</string>
     <string name="alarmLowDesc">Avisar quando o nível cair para esta porcentagem sem estar carregando</string>
     <string name="alarmHigh">Carga desejada</string>

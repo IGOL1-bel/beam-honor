@@ -30,8 +30,8 @@
     <string name="colorHex">Hex</string>
     <string name="colorHue">Hue</string>
     <string name="colorSaturation">Saturation</string>
+    <string name="colorBrightness">Brightness</string>
     <string name="colorStyle">Colour Style</string>
-    <string name="colorStyleAutoHint">Colour styles apply to custom colours</string>
     <string name="colorStyleTonalSpot">Tonal</string>
     <string name="colorStyleNeutral">Neutral</string>
     <string name="colorStyleVibrant">Vibrant</string>
@@ -60,6 +60,8 @@
     <string name="supportMe">Support development</string>
     <string name="supportMeDesc">Help support my projects 🐢</string>
     <string name="openInBrowser">Open in browser</string>
+    <string name="openInWallet">Open in wallet</string>
+    <string name="noWalletApp">No wallet app found, address copied</string>
     <string name="copy">Copy</string>
     <string name="about">About</string>
     <string name="language">Language</string>
@@ -94,7 +96,7 @@
     <string name="soundEnabledDesc">Play a click sound on tap</string>
     <string name="whatsNew">What\'s New</string>
     <string name="font">Font</string>
-    <string name="fontDefault">Default</string>
+    <string name="fontSystem">System</string>
     <string name="fontDesc">Typeface used throughout the app</string>
     <string name="outlinedCards">Outlined Cards</string>
     <string name="outlinedCardsDesc">Show cards with a border instead of a filled background</string>
@@ -122,6 +124,7 @@
     <string name="alarms">Battery Alarms</string>
     <string name="alarmsShortDesc">Low, full &amp; temperature alerts</string>
     <string name="alarmsDesc">Get notified when the battery reaches a level or temperature you set. Alarms work even while the screen is off.</string>
+    <string name="alarmsNeedNotifications">Notifications are blocked or the status notification is off, so alarms cannot alert you right now.</string>
     <string name="alarmLow">Low Battery</string>
     <string name="alarmLowDesc">Alert when the level drops to this percentage while unplugged</string>
     <string name="alarmHigh">Target Charge</string>

@@ -1,12 +1,7 @@
 package montafra.beam.ui.theme
 
 import androidx.annotation.StringRes
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -15,15 +10,10 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import montafra.beam.R
@@ -91,6 +81,13 @@ enum class CardSpacing(
 val LocalCardSpacing = staticCompositionLocalOf { CardSpacing.Compact }
 
 /**
+ * Widest the single scrolling card column grows to. Past this the column centres instead of
+ * stretching, so a landscape phone or a tablet gets margins rather than cards spanning the whole
+ * display. Inert below this width, so portrait phones are unaffected.
+ */
+val BeamMaxContentWidth = 600.dp
+
+/**
  * The gap between two cards stacked inside one group. Prefer this over a bare [Spacer] so a card
  * gap stays greppable - the app is full of unrelated 4.dp spacers that must NOT scale with the
  * Card Spacing setting.
@@ -132,21 +129,6 @@ fun cardShapeMiddle(seam: Dp = LocalCardSpacing.current.inner): Shape = RoundedC
 fun cardShapeBottom(radius: Dp = 20.dp, seam: Dp = LocalCardSpacing.current.inner): Shape =
     RoundedCornerShape(topStart = seam, topEnd = seam, bottomStart = outer(radius), bottomEnd = outer(radius))
 
-/**
- * The interaction source a [BeamCard] offers to whatever it wraps.
- *
- * A card can't see presses landing on its own content, and pairing every call site with its own
- * source by hand would be 30-odd chances to wire one up backwards. So the card publishes one and
- * any clickable inside picks it up - which also means only cards that actually contain something
- * tappable ever animate. Purely decorative ones never see a press and stay still.
- */
-internal val LocalCardInteraction = compositionLocalOf<MutableInteractionSource?> { null }
-
-/** The clickable's interaction source, wired to the enclosing [BeamCard] when there is one. */
-@Composable
-fun rememberCardInteraction(): MutableInteractionSource =
-    LocalCardInteraction.current ?: remember { MutableInteractionSource() }
-
 @Composable
 fun BeamCard(
     modifier: Modifier = Modifier,
@@ -155,32 +137,14 @@ fun BeamCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val outlineOnly = LocalOutlineOnlyCards.current
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    // The expressive press: the card shrinks a touch away from its neighbours in the stack and
-    // springs back. Hand-tuned rather than taken from MotionScheme, which the material3 on the
-    // classpath doesn't ship yet - the damping is just shy of critical so it settles without a
-    // wobble, matching the fast spatial spec it stands in for.
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.975f else 1f,
-        animationSpec = spring(dampingRatio = 0.9f, stiffness = Spring.StiffnessMediumLow),
-        label = "cardPress",
-    )
     Card(
-        modifier = modifier.graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-        },
+        modifier = modifier,
         shape = shape,
         colors = CardDefaults.cardColors(
             containerColor = if (outlineOnly) Color.Transparent else containerColor,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = if (outlineOnly) BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline) else null,
-    ) {
-        val columnScope = this
-        CompositionLocalProvider(LocalCardInteraction provides interaction) {
-            with(columnScope) { content() }
-        }
-    }
+        content = content,
+    )
 }

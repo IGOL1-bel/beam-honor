@@ -17,6 +17,8 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -110,10 +112,10 @@ internal class NavTransition(
 }
 
 class BeamNavController internal constructor(
-    startRoute: String,
+    initialStack: List<String>,
     private val scope: CoroutineScope,
 ) {
-    internal val backStack = mutableStateListOf(startRoute)
+    internal val backStack = mutableStateListOf<String>().apply { addAll(initialStack) }
     internal var transition by mutableStateOf<NavTransition?>(null)
 
     val canPop: Boolean get() = backStack.size > 1
@@ -132,6 +134,9 @@ class BeamNavController internal constructor(
     fun popBackStack() {
         if (transition != null || !canPop) return
         val t = NavTransition(from = backStack.last(), to = backStack[backStack.size - 2], isPop = true)
+        // A programmatic pop is committed from the start — there is no cancel path — so the
+        // saver must drop the outgoing route if the activity is recreated mid-animation.
+        t.committed = true
         transition = t
         scope.launch {
             t.progress.animateTo(1f, tween(PopDurationMs, easing = EmphasizedDecelerate))
@@ -205,7 +210,24 @@ class BeamNavController internal constructor(
 @Composable
 fun rememberBeamNavController(startRoute: String): BeamNavController {
     val scope = rememberCoroutineScope()
-    return remember { BeamNavController(startRoute, scope) }
+    // Saveable so a configuration change (rotation) keeps the user where they were instead of
+    // dropping them back on the start route. The in-flight transition is deliberately not saved:
+    // restoring settles straight to a static stack, which is the right outcome mid-animation.
+    return rememberSaveable(
+        saver = listSaver(
+            save = { controller ->
+                val stack = controller.backStack.toList()
+                // A pop only removes from backStack in finishPop(), once the animation ends, so
+                // saving mid-pop would restore the screen the user was on their way out of. Only a
+                // committed one though: a cancelled gesture is still animating back with its route
+                // legitimately on the stack, and dropping it would pop the user off a screen they
+                // chose to stay on. A push adds up front, so that direction needs no adjustment.
+                val t = controller.transition
+                if (t != null && t.isPop && t.committed) stack.dropLast(1) else stack
+            },
+            restore = { BeamNavController(it, scope) },
+        ),
+    ) { BeamNavController(listOf(startRoute), scope) }
 }
 
 @Composable
@@ -219,7 +241,10 @@ fun PredictiveNavHost(
     }
 
     val stateHolder = rememberSaveableStateHolder()
-    val knownRoutes = remember { mutableSetOf<String>() }
+    // Seeded from the stack rather than left empty: the holder is saveable and the controller now
+    // restores its stack, so after a configuration change there is already saved state to prune.
+    // An empty set here would leave those entries alive for the life of the process.
+    val knownRoutes = remember { mutableSetOf<String>().apply { addAll(controller.backStack) } }
     val stackSnapshot = controller.backStack.toList()
     LaunchedEffect(stackSnapshot) {
         // Drop saved state of routes that have left the back stack

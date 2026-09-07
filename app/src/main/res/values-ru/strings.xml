@@ -29,8 +29,8 @@
     <string name="colorHex">Hex</string>
     <string name="colorHue">Оттенок</string>
     <string name="colorSaturation">Насыщенность</string>
+    <string name="colorBrightness">Яркость</string>
     <string name="colorStyle">Стиль цвета</string>
-    <string name="colorStyleAutoHint">Стили цвета применяются к своим цветам</string>
     <string name="colorStyleTonalSpot">Тональный</string>
     <string name="colorStyleNeutral">Нейтральный</string>
     <string name="colorStyleVibrant">Яркий</string>
@@ -59,6 +59,8 @@
     <string name="supportMe">Поддержать разработку</string>
     <string name="supportMeDesc">Помогите поддержать мои проекты 🐢</string>
     <string name="openInBrowser">Открыть в браузере</string>
+    <string name="openInWallet">Открыть в кошельке</string>
+    <string name="noWalletApp">Кошелёк не найден, адрес скопирован</string>
     <string name="copy">Скопировать</string>
     <string name="about">О приложении</string>
     <string name="language">Язык</string>
@@ -93,7 +95,7 @@
     <string name="soundEnabledDesc">Воспроизводить щелчок при нажатии</string>
     <string name="whatsNew">Что нового?</string>
     <string name="font">Шрифт</string>
-    <string name="fontDefault">По умолчанию</string>
+    <string name="fontSystem">Системный</string>
     <string name="fontDesc">Шрифт, используемый в приложении</string>
     <string name="outlinedCards">Граница карточек</string>
     <string name="outlinedCardsDesc">Рисовать карточки с границей вместо цветного фона</string>
@@ -120,6 +122,7 @@
     <string name="alarms">Оповещения батареи</string>
     <string name="alarmsShortDesc">Оповещения о заряде и температуре</string>
     <string name="alarmsDesc">Получайте уведомление, когда батарея достигает заданного уровня или температуры. Оповещения работают даже при выключенном экране.</string>
+    <string name="alarmsNeedNotifications">Уведомления заблокированы или уведомление о состоянии отключено — оповещения сейчас не могут вас предупредить.</string>
     <string name="alarmLow">Низкий заряд</string>
     <string name="alarmLowDesc">Уведомлять, когда уровень опускается до этого процента и батарея не заряжается</string>
     <string name="alarmHigh">Целевой заряд</string>

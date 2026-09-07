@@ -27,10 +27,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -58,6 +66,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
@@ -77,7 +86,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -94,8 +103,10 @@ import montafra.beam.BatteryViewModel
 import montafra.beam.LocalHapticsEnabled
 import montafra.beam.R
 import montafra.beam.VendorBatteryHints
+import montafra.beam.defaultFontKey
 import montafra.beam.settingsName
 import montafra.beam.ui.theme.BeamCard
+import montafra.beam.ui.theme.BeamMaxContentWidth
 import montafra.beam.ui.theme.HomeCardGap
 import montafra.beam.ui.theme.LocalCardSpacing
 import montafra.beam.ui.theme.cardShapeBottom
@@ -111,7 +122,7 @@ fun MainScreen(navController: BeamNavController, vm: BatteryViewModel = viewMode
     val data by vm.data.collectAsState()
     val primary = MaterialTheme.colorScheme.primary
     val background = MaterialTheme.colorScheme.background
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalTapHaptics.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val hapticsEnabled = LocalHapticsEnabled.current
@@ -150,7 +161,7 @@ fun MainScreen(navController: BeamNavController, vm: BatteryViewModel = viewMode
         context.getSharedPreferences(settingsName, Context.MODE_PRIVATE).getBoolean("showChargeLevel", true)
     ) }
     val fontKey = remember { mutableStateOf(
-        context.getSharedPreferences(settingsName, Context.MODE_PRIVATE).getString("fontFamily", "default") ?: "default"
+        context.getSharedPreferences(settingsName, Context.MODE_PRIVATE).getString("fontFamily", defaultFontKey) ?: defaultFontKey
     ) }
     DisposableEffect(Unit) {
         val prefs = context.getSharedPreferences(settingsName, Context.MODE_PRIVATE)
@@ -159,7 +170,7 @@ fun MainScreen(navController: BeamNavController, vm: BatteryViewModel = viewMode
                 "heroBacklight" -> heroBacklight.value = p.getBoolean(key, true)
                 "keepScreenOn" -> keepScreenOn.value = p.getBoolean(key, false)
                 "showChargeLevel" -> showChargeLevel.value = p.getBoolean(key, true)
-                "fontFamily" -> fontKey.value = p.getString(key, "default") ?: "default"
+                "fontFamily" -> fontKey.value = p.getString(key, defaultFontKey) ?: defaultFontKey
             }
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)
@@ -176,9 +187,13 @@ fun MainScreen(navController: BeamNavController, vm: BatteryViewModel = viewMode
         try { context.packageManager.getPackageInfo(context.packageName, 0).longVersionCode.toInt() }
         catch (_: Exception) { 0 }
     }
-    var showChangelog by remember { mutableStateOf(false) }
+    // Saveable so a rotation does not dismiss (or, via the LaunchedEffect below, re-present) an
+    // open sheet — same reasoning as SettingsScreen's sheet flags. The entries themselves aren't
+    // saveable, so a restored sheet refills them below rather than carrying the parsed changelog
+    // through the bundle.
+    var showChangelog by rememberSaveable { mutableStateOf(false) }
     var changelogEntries by remember { mutableStateOf(emptyList<ChangelogEntry>()) }
-    var showVendorHint by remember { mutableStateOf(false) }
+    var showVendorHint by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         val prefs = context.getSharedPreferences(settingsName, Context.MODE_PRIVATE)
         val lastSeen = prefs.getInt("lastSeenVersionCode", 0)
@@ -262,6 +277,9 @@ fun MainScreen(navController: BeamNavController, vm: BatteryViewModel = viewMode
         Scaffold(
             modifier = Modifier,
             containerColor = Color.Transparent,
+            // safeDrawing rather than the systemBars default: it also covers the display cutout,
+            // which sits on a long edge in landscape and would otherwise clip the cards.
+            contentWindowInsets = WindowInsets.safeDrawing,
             topBar = {
                 TopAppBar(
                     title = {
@@ -295,6 +313,10 @@ fun MainScreen(navController: BeamNavController, vm: BatteryViewModel = viewMode
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
                     ),
+                    // The bar owns its insets separately from the scaffold's; the default is
+                    // systemBars, which misses the cutout the gear would sit under in landscape.
+                    windowInsets = WindowInsets.safeDrawing
+                        .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
                     actions = {
                         IconButton(onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -310,125 +332,137 @@ fun MainScreen(navController: BeamNavController, vm: BatteryViewModel = viewMode
                 )
             },
         ) { padding ->
-            LazyColumn(
-                // Top inset stays layout padding (the TopAppBar is transparent, content must not
-                // slide under it); the nav-bar inset goes into contentPadding so cards scroll
-                // beneath the gesture pill instead of stopping above it.
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = padding.calculateTopPadding())
-                    .padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(bottom = padding.calculateBottomPadding()),
-                verticalArrangement = Arrangement.spacedBy(LocalCardSpacing.current.homeGroup),
-            ) {
-                item { Spacer(Modifier.height(4.dp)) }
-                item {
-                    Box(modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(cardShapeSingle(radius = 40.dp))
-                    ) {
-                        val glowMod = Modifier.matchParentSize().let { m ->
-                            if (Build.VERSION.SDK_INT >= 31) m.graphicsLayer {
-                                renderEffect = RenderEffect
-                                    .createBlurEffect(40f, 40f, Shader.TileMode.DECAL)
-                                    .asComposeRenderEffect()
-                            } else m
-                        }
-                        if (heroBacklight.value) Canvas(glowMod) {
-                            val w = size.width
-                            val h = size.height
-                            val a = (p1 - 0.5f) * 2f   // -1..1 waves
-                            val b = (p2 - 0.5f) * 2f
-                            val c = (p3 - 0.5f) * 2f
-                            val br = breathe
+            val layoutDirection = LocalLayoutDirection.current
+            // Centred and width-capped so a landscape phone or tablet gets margins instead of
+            // cards stretched across the whole display. The top bar stays full width.
+            Box(Modifier.fillMaxSize()) {
+                LazyColumn(
+                    // Top inset stays layout padding (the TopAppBar is transparent, content must not
+                    // slide under it); the nav-bar inset goes into contentPadding so cards scroll
+                    // beneath the gesture pill instead of stopping above it.
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .widthIn(max = BeamMaxContentWidth)
+                        .align(Alignment.TopCenter)
+                        .padding(top = padding.calculateTopPadding())
+                        .padding(
+                            // The scaffold's start/end insets clear a landscape side nav bar or
+                            // cutout; they are zero in portrait, so this stays the plain 16.dp.
+                            start = 16.dp + padding.calculateStartPadding(layoutDirection),
+                            end = 16.dp + padding.calculateEndPadding(layoutDirection),
+                        ),
+                    contentPadding = PaddingValues(bottom = padding.calculateBottomPadding()),
+                    verticalArrangement = Arrangement.spacedBy(LocalCardSpacing.current.homeGroup),
+                ) {
+                    item { Spacer(Modifier.height(4.dp)) }
+                    item {
+                        Box(modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(cardShapeSingle(radius = 40.dp))
+                        ) {
+                            val glowMod = Modifier.matchParentSize().let { m ->
+                                if (Build.VERSION.SDK_INT >= 31) m.graphicsLayer {
+                                    renderEffect = RenderEffect
+                                        .createBlurEffect(40f, 40f, Shader.TileMode.DECAL)
+                                        .asComposeRenderEffect()
+                                } else m
+                            }
+                            if (heroBacklight.value) Canvas(glowMod) {
+                                val w = size.width
+                                val h = size.height
+                                val a = (p1 - 0.5f) * 2f   // -1..1 waves
+                                val b = (p2 - 0.5f) * 2f
+                                val c = (p3 - 0.5f) * 2f
+                                val br = breathe
 
-                            val cx = w * 0.50f + w * 0.05f * a   // gentle whole-shape sway, centered
-                            val cy = h * 0.50f + h * 0.03f * b   // centered, no directional bias
+                                val cx = w * 0.50f + w * 0.05f * a   // gentle whole-shape sway, centered
+                                val cy = h * 0.50f + h * 0.03f * b   // centered, no directional bias
 
-                            // Ambient halo — steady, large, fills gaps so the union never splits.
-                            run {
-                                val r = w * 0.78f * (0.92f + 0.08f * br)
+                                // Ambient halo — steady, large, fills gaps so the union never splits.
+                                run {
+                                    val r = w * 0.78f * (0.92f + 0.08f * br)
+                                    drawCircle(
+                                        brush = Brush.radialGradient(
+                                            listOf(primary.copy(alpha = (0.07f + 0.03f * br) * glowScale), Color.Transparent),
+                                            center = Offset(cx, cy), radius = r,
+                                        ),
+                                        radius = r, center = Offset(cx, cy),
+                                    )
+                                }
+
+                                // 3 metaball lobes on phase-offset Lissajous paths (each steered by a
+                                // different pair of phases). Large radius vs small drift ⇒ always overlapping
+                                // = one shape. Symmetric wander, no vertical bias.
+                                // entry = (driftA, driftB, baseAngle, rFrac, rPulse, alpha)
+                                val lobes = listOf(
+                                    listOf(a, b, -0.35f, 0.40f, c, 0.13f),
+                                    listOf(b, c,  0.55f, 0.36f, a, 0.12f),
+                                    listOf(c, a,  0.05f, 0.42f, b, 0.14f),
+                                )
+                                for (l in lobes) {
+                                    val dA = l[0]; val dB = l[1]; val ang = l[2]
+                                    val rFrac = l[3]; val rPulse = l[4]; val alpha = l[5]
+                                    val ox = cx + w * 0.085f * dA + w * 0.045f * cos(ang + dB * 0.8f).toFloat()
+                                    val oy = cy + h * 0.06f * dB + h * 0.045f * sin(ang + dA * 0.8f).toFloat()
+                                    val r = w * rFrac * (0.85f + 0.15f * (rPulse * 0.5f + 0.5f))
+                                    drawCircle(
+                                        brush = Brush.radialGradient(
+                                            listOf(primary.copy(alpha = alpha * (0.80f + 0.20f * br) * glowScale), Color.Transparent),
+                                            center = Offset(ox, oy), radius = r,
+                                        ),
+                                        radius = r, center = Offset(ox, oy),
+                                    )
+                                }
+
+                                // Steady bright core — keeps a hot center so the shape never reads as hollow/split.
+                                val coreR = w * 0.16f * (0.85f + 0.15f * br)
                                 drawCircle(
                                     brush = Brush.radialGradient(
-                                        listOf(primary.copy(alpha = (0.07f + 0.03f * br) * glowScale), Color.Transparent),
-                                        center = Offset(cx, cy), radius = r,
+                                        listOf(primary.copy(alpha = (0.24f + 0.10f * br) * glowScale), Color.Transparent),
+                                        center = Offset(cx, cy), radius = coreR,
                                     ),
-                                    radius = r, center = Offset(cx, cy),
+                                    radius = coreR, center = Offset(cx, cy),
                                 )
                             }
-
-                            // 3 metaball lobes on phase-offset Lissajous paths (each steered by a
-                            // different pair of phases). Large radius vs small drift ⇒ always overlapping
-                            // = one shape. Symmetric wander, no vertical bias.
-                            // entry = (driftA, driftB, baseAngle, rFrac, rPulse, alpha)
-                            val lobes = listOf(
-                                listOf(a, b, -0.35f, 0.40f, c, 0.13f),
-                                listOf(b, c,  0.55f, 0.36f, a, 0.12f),
-                                listOf(c, a,  0.05f, 0.42f, b, 0.14f),
-                            )
-                            for (l in lobes) {
-                                val dA = l[0]; val dB = l[1]; val ang = l[2]
-                                val rFrac = l[3]; val rPulse = l[4]; val alpha = l[5]
-                                val ox = cx + w * 0.085f * dA + w * 0.045f * cos(ang + dB * 0.8f).toFloat()
-                                val oy = cy + h * 0.06f * dB + h * 0.045f * sin(ang + dA * 0.8f).toFloat()
-                                val r = w * rFrac * (0.85f + 0.15f * (rPulse * 0.5f + 0.5f))
-                                drawCircle(
-                                    brush = Brush.radialGradient(
-                                        listOf(primary.copy(alpha = alpha * (0.80f + 0.20f * br) * glowScale), Color.Transparent),
-                                        center = Offset(ox, oy), radius = r,
-                                    ),
-                                    radius = r, center = Offset(ox, oy),
-                                )
-                            }
-
-                            // Steady bright core — keeps a hot center so the shape never reads as hollow/split.
-                            val coreR = w * 0.16f * (0.85f + 0.15f * br)
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    listOf(primary.copy(alpha = (0.24f + 0.10f * br) * glowScale), Color.Transparent),
-                                    center = Offset(cx, cy), radius = coreR,
-                                ),
-                                radius = coreR, center = Offset(cx, cy),
-                            )
+                            HeroCard(data, showChargeLevel.value, fontKey.value)
                         }
-                        HeroCard(data, showChargeLevel.value, fontKey.value)
                     }
+                    // Deliberate extra break between the hero and the metrics, on top of the two
+                    // homeGroup gaps this spacer item sits between. Fixed, so the hero stays visually
+                    // detached from the metric group at every Card Spacing setting.
+                    item { Spacer(Modifier.height(8.dp)) }
+                    item {
+                        val homeSeam = LocalCardSpacing.current.homeInner
+                        MetricCard(
+                            shape = cardShapeTop(radius = 24.dp, seam = homeSeam),
+                        ) {
+                            MetricRow(stringResource(R.string.power), data.power)
+                            MetricRow(stringResource(R.string.current), data.current)
+                            MetricRow(stringResource(R.string.voltage), data.voltage)
+                            MetricRow(stringResource(R.string.temperature), data.temperature)
+                            MetricRow(stringResource(R.string.energy), data.energy)
+                        }
+                        HomeCardGap()
+                        MetricCard(
+                            shape = cardShapeMiddle(seam = homeSeam),
+                        ) {
+                            val rows = listOf(
+                                stringResource(R.string.chargeLevel) to data.chargeLevel,
+                                stringResource(R.string.charging) to data.charging,
+                                stringResource(R.string.chargingSince) to data.chargingSince,
+                                stringResource(R.string.timeToFullCharge) to data.timeToFullCharge,
+                            ).filter { (_, v) -> v != "-" }
+                            rows.forEach { (label, value) -> MetricRow(label, value) }
+                        }
+                        HomeCardGap()
+                        MetricCard(
+                            shape = cardShapeBottom(radius = 24.dp, seam = homeSeam),
+                        ) {
+                            MetricRow(stringResource(R.string.screenTime), data.screenTime)
+                        }
+                    }
+                    item { Spacer(Modifier.height(16.dp)) }
                 }
-                // Deliberate extra break between the hero and the metrics, on top of the two
-                // homeGroup gaps this spacer item sits between. Fixed, so the hero stays visually
-                // detached from the metric group at every Card Spacing setting.
-                item { Spacer(Modifier.height(8.dp)) }
-                item {
-                    val homeSeam = LocalCardSpacing.current.homeInner
-                    MetricCard(
-                        shape = cardShapeTop(radius = 24.dp, seam = homeSeam),
-                    ) {
-                        MetricRow(stringResource(R.string.power), data.power)
-                        MetricRow(stringResource(R.string.current), data.current)
-                        MetricRow(stringResource(R.string.voltage), data.voltage)
-                        MetricRow(stringResource(R.string.temperature), data.temperature)
-                        MetricRow(stringResource(R.string.energy), data.energy)
-                    }
-                    HomeCardGap()
-                    MetricCard(
-                        shape = cardShapeMiddle(seam = homeSeam),
-                    ) {
-                        val rows = listOf(
-                            stringResource(R.string.chargeLevel) to data.chargeLevel,
-                            stringResource(R.string.charging) to data.charging,
-                            stringResource(R.string.chargingSince) to data.chargingSince,
-                            stringResource(R.string.timeToFullCharge) to data.timeToFullCharge,
-                        ).filter { (_, v) -> v != "-" }
-                        rows.forEach { (label, value) -> MetricRow(label, value) }
-                    }
-                    HomeCardGap()
-                    MetricCard(
-                        shape = cardShapeBottom(radius = 24.dp, seam = homeSeam),
-                    ) {
-                        MetricRow(stringResource(R.string.screenTime), data.screenTime)
-                    }
-                }
-                item { Spacer(Modifier.height(16.dp)) }
             }
         }
     }
@@ -484,7 +518,7 @@ private const val LIQUIFY_AGSL = """
 @Composable
 private fun HeroCard(data: BatteryData, showChargeLevel: Boolean, fontKey: String) {
     val context = LocalContext.current
-    val haptic = LocalHapticFeedback.current
+    val haptic = LocalTapHaptics.current
     val hapticsEnabled = LocalHapticsEnabled.current
     val scope = rememberCoroutineScope()
     val primary = MaterialTheme.colorScheme.primary

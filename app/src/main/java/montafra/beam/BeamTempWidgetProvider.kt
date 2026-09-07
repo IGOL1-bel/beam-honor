@@ -48,7 +48,7 @@ class BeamTempWidgetProvider : AppWidgetProvider() {
             val views = RemoteViews(context.packageName, R.layout.widget_temp)
 
             val fontKey = context.getSharedPreferences(settingsName, Context.MODE_MULTI_PROCESS)
-                .getString("fontFamily", "default")
+                .getString("fontFamily", defaultFontKey)
             val typeface = BeamFont.forKey(fontKey)?.typeface(context, TEXT_WEIGHT)
 
             if (typeface == null) {
@@ -110,8 +110,13 @@ class BeamTempWidgetProvider : AppWidgetProvider() {
         val mgr = AppWidgetManager.getInstance(context)
         val ids = widgetIds(context, mgr)
         if (ids.isEmpty()) return
-        context.getSharedPreferences(settingsName, Context.MODE_MULTI_PROCESS)
-            .edit().putString(CACHE_KEY, temperature).apply()
+        val prefs = context.getSharedPreferences(settingsName, Context.MODE_MULTI_PROCESS)
+        // The broadcast lands every intervalMs but the reading only moves every few minutes, and a
+        // rebuild is not cheap: on the custom-font path it derives a Typeface, draws two bitmaps
+        // and marshals them to the launcher, per widget. A font change still repaints, because
+        // requestUpdate() goes through onUpdate(), which rebuilds from the cache regardless.
+        if (prefs.getString(CACHE_KEY, null) == temperature) return
+        prefs.edit().putString(CACHE_KEY, temperature).apply()
         val views = buildViews(context, temperature)
         for (id in ids) mgr.updateAppWidget(id, views)
     }
