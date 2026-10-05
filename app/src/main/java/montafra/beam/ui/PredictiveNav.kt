@@ -118,16 +118,26 @@ class BeamNavController internal constructor(
     internal val backStack = mutableStateListOf<String>().apply { addAll(initialStack) }
     internal var transition by mutableStateOf<NavTransition?>(null)
 
+    // The transition that just finished, kept until the next one starts. When `transition` goes
+    // null the layers read it to stay in their final pose for the frame (or two) before the
+    // outgoing screen actually leaves the composition. Without it a popped screen snaps back to
+    // translationX = 0 / alpha = 1 for an instant and flashes over the one underneath.
+    internal var lastTransition: NavTransition? = null
+
     val canPop: Boolean get() = backStack.size > 1
 
     fun navigate(route: String) {
         if (transition != null || backStack.last() == route) return
         val t = NavTransition(from = backStack.last(), to = route, isPop = false)
         backStack.add(route)
+        lastTransition = null
         transition = t
         scope.launch {
             t.progress.animateTo(1f, tween(PushDurationMs, easing = EmphasizedDecelerate))
-            if (transition === t) transition = null
+            if (transition === t) {
+                lastTransition = t
+                transition = null
+            }
         }
     }
 
@@ -137,6 +147,7 @@ class BeamNavController internal constructor(
         // A programmatic pop is committed from the start — there is no cancel path — so the
         // saver must drop the outgoing route if the activity is recreated mid-animation.
         t.committed = true
+        lastTransition = null
         transition = t
         scope.launch {
             t.progress.animateTo(1f, tween(PopDurationMs, easing = EmphasizedDecelerate))
@@ -147,11 +158,13 @@ class BeamNavController internal constructor(
     private fun finishPop(t: NavTransition) {
         if (transition === t) {
             backStack.removeAt(backStack.size - 1)
+            lastTransition = t
             transition = null
         }
     }
 
     internal suspend fun handleBackGesture(events: Flow<BackEventCompat>) {
+        lastTransition = null
         // A new back gesture interrupts any in-flight transition: settle it instantly
         transition?.let { running ->
             if (running.isPop) backStack.removeAt(backStack.size - 1)
@@ -271,7 +284,7 @@ fun PredictiveNavHost(
                     Modifier
                         .fillMaxSize()
                         .graphicsLayer {
-                            controller.transition?.let { tr ->
+                            (controller.transition ?: controller.lastTransition)?.let { tr ->
                                 if (route == tr.topRoute) tr.applyTop(this) else tr.applyBottom(this)
                             }
                         }

@@ -51,6 +51,12 @@
     <string name="currentScalar">Řešení škálování výkonu</string>
     <string name="currentScalarDesc">Když není připojeno k napájení, měňte tento násobitel, dokud nebude hodnota Výkon větší než 0 W, ale menší než přibližně 10 W.</string>
     <string name="customScalar">Vlastní násobitel (libovolné kladné číslo)</string>
+    <string name="chargerInputMetrics">Hodnoty na vstupu nabíječky</string>
+    <string name="chargerInputMetricsDesc">Při nabíjení zobrazuje napětí a proud měřené na vstupu nabíječky místo na baterii. Pokud je telefon neposkytuje, zobrazí se hodnoty baterie.</string>
+    <string name="chargerSourceFound">Zdroj: %1$s</string>
+    <string name="chargerSourceMissing">Hodnoty nabíječky nejsou k dispozici (připojte nabíječku), zobrazeny hodnoty baterie</string>
+    <string name="runOnlyWhileCharging">Spustit pouze při nabíjení</string>
+    <string name="runOnlyWhileChargingDesc">Oznámení se zobrazí jen při připojené nabíječce: spustí se po připojení a zastaví po odpojení. Vyžaduje neomezené využití baterie pro Beam.</string>
     <string name="invertCurrent">Obrátit indikátor nabíjení</string>
     <string name="invertCurrentDesc">Když není připojeno k napájení, zapněte tuto možnost, pokud se u položky Nabíjení zobrazuje ano.</string>
     <string name="useFahrenheit">Fahrenheit</string>

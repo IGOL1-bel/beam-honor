@@ -52,7 +52,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import montafra.beam.BatteryViewModel
+import montafra.beam.ChargerReader
 import montafra.beam.R
+import montafra.beam.runOnlyWhileChargingKey
 import montafra.beam.VendorBatteryHints
 import montafra.beam.intervalMs
 import montafra.beam.settingsName
@@ -99,6 +101,10 @@ fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewM
     var scalarText by remember { mutableStateOf(formatScalar(currentScalar)) }
     var invertCurrent by remember { mutableStateOf(prefs.getBoolean("invertCurrent", false)) }
     var useFahrenheit by remember { mutableStateOf(prefs.getBoolean("useFahrenheit", false)) }
+    var chargerMetrics by remember { mutableStateOf(prefs.getBoolean("chargerMetrics", true)) }
+    var runOnlyWhileCharging by remember {
+        mutableStateOf(prefs.getBoolean(runOnlyWhileChargingKey, false))
+    }
     var pollIndex by remember {
         // intervalMs is what StatusService falls back to; a different default here would just
         // mislabel the rate the service is actually running at.
@@ -110,6 +116,8 @@ fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewM
             .putFloat("currentScalar", currentScalar)
             .putBoolean("invertCurrent", invertCurrent)
             .putBoolean("useFahrenheit", useFahrenheit)
+            .putBoolean("chargerMetrics", chargerMetrics)
+            .putBoolean(runOnlyWhileChargingKey, runOnlyWhileCharging)
             .putLong("pollIntervalMs", pollIntervals[pollIndex])
             .commit()
         context.sendBroadcast(
@@ -273,6 +281,50 @@ fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewM
                         checked = useFahrenheit,
                         onCheckedChange = {
                             useFahrenheit = it
+                            saveWorkarounds()
+                        },
+                    )
+                }
+                CardGap()
+                BeamCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = cardShapeMiddle(),
+                ) {
+                    Column {
+                        ToggleSettingRow(
+                            title = stringResource(R.string.chargerInputMetrics),
+                            description = stringResource(R.string.chargerInputMetricsDesc),
+                            checked = chargerMetrics,
+                            onCheckedChange = {
+                                chargerMetrics = it
+                                saveWorkarounds()
+                            },
+                        )
+                        // Which kernel node the readings come from, so a wrong or missing source
+                        // is visible instead of silently showing battery values.
+                        val chargerSource = remember(data) { ChargerReader.read()?.source }
+                        Text(
+                            text = if (chargerSource != null)
+                                stringResource(R.string.chargerSourceFound, chargerSource)
+                            else
+                                stringResource(R.string.chargerSourceMissing),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 12.dp),
+                        )
+                    }
+                }
+                CardGap()
+                BeamCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = cardShapeMiddle(),
+                ) {
+                    ToggleSettingRow(
+                        title = stringResource(R.string.runOnlyWhileCharging),
+                        description = stringResource(R.string.runOnlyWhileChargingDesc),
+                        checked = runOnlyWhileCharging,
+                        onCheckedChange = {
+                            runOnlyWhileCharging = it
                             saveWorkarounds()
                         },
                     )

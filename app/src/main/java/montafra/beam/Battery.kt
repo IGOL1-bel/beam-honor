@@ -53,6 +53,8 @@ class Battery(private val ctx: Context) {
     // configuration
     var currentScalar = 1.0
     var invertCurrent = false
+    // Report voltage/current at the charger input while charging, when the device exposes it.
+    var useCharger = true
 
     private fun prop(id: Int): Long? {
         val v = mgr.getLongProperty(id)
@@ -77,8 +79,14 @@ class Battery(private val ctx: Context) {
         val batteryIntent = ctx.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
         val levelScale = prop(BatteryManager.EXTRA_SCALE, batteryIntent)?.toDouble()
         val level = prop(BatteryManager.EXTRA_LEVEL, batteryIntent)?.toDouble()
+        val pluggedRaw = prop(BatteryManager.EXTRA_PLUGGED, batteryIntent)
+
+        // Only worth touching sysfs while something is plugged in.
+        val charger = if (useCharger && (pluggedRaw ?: 0L) != 0L) ChargerReader.read() else null
 
         return BatterySnapshot(
+            chargerMillivolts = charger?.millivolts,
+            chargerCurrentRaw = charger?.currentRaw,
             chargeTimeRemainingRaw = mgr.computeChargeTimeRemaining(),
             currentRaw = prop(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW),
             chargeStatus = ChargeStatus.fromRaw(prop(BatteryManager.EXTRA_STATUS, batteryIntent)?.toInt()),
@@ -87,7 +95,7 @@ class Battery(private val ctx: Context) {
             level = level.div(levelScale),
             invertCurrent = invertCurrent,
             isChargingRaw = mgr.isCharging,
-            pluggedRaw = prop(BatteryManager.EXTRA_PLUGGED, batteryIntent),
+            pluggedRaw = pluggedRaw,
             tempRaw = prop(BatteryManager.EXTRA_TEMPERATURE, batteryIntent),
             voltsRaw = prop(BatteryManager.EXTRA_VOLTAGE, batteryIntent),
         )

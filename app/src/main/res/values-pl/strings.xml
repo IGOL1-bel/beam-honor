@@ -51,6 +51,12 @@
     <string name="currentScalar">Korekta skali mocy</string>
     <string name="currentScalarDesc">Gdy telefon nie jest podłączony do ładowarki, zmieniaj tę wartość, aż „Moc” będzie większa niż 0W, ale mniejsza niż około 10W.</string>
     <string name="customScalar">Własny mnożnik (dowolna liczba dodatnia)</string>
+    <string name="chargerInputMetrics">Odczyty z wejścia ładowarki</string>
+    <string name="chargerInputMetricsDesc">Podczas ładowania pokazuje napięcie i prąd mierzone na wejściu ładowarki, a nie na baterii. Jeśli telefon ich nie udostępnia, pokazywane są wartości baterii.</string>
+    <string name="chargerSourceFound">Źródło: %1$s</string>
+    <string name="chargerSourceMissing">Brak odczytów ładowarki (podłącz ładowarkę); pokazano wartości baterii</string>
+    <string name="runOnlyWhileCharging">Działaj tylko podczas ładowania</string>
+    <string name="runOnlyWhileChargingDesc">Pokazuje powiadomienie tylko przy podłączonej ładowarce: uruchamia się po podłączeniu i zatrzymuje po odłączeniu. Wymaga nieograniczonego użycia baterii dla Beam.</string>
     <string name="invertCurrent">Odwróć wskaźnik ładowania</string>
     <string name="invertCurrentDesc">Gdy telefon nie jest podłączony do ładowarki, włącz tę opcję, jeśli „Ładowanie” pokazuje „tak”.</string>
     <string name="useFahrenheit">Fahrenheit</string>

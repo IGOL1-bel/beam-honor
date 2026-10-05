@@ -116,6 +116,27 @@ import montafra.beam.ui.theme.cardShapeTop
 import montafra.beam.ui.theme.heroNumberFontFamily
 import montafra.beam.ui.theme.heroWeightFor
 
+// Film grain behind the main screen. Built once per process: the screen leaves the composition
+// whenever another one is on top, so a per-composition remember {} regenerated 65k random pixels
+// on the main thread every time the user came back - right inside the first frames of the pop
+// animation, where the hitch reads as a flicker.
+private val sharedGrainBrush: ShaderBrush by lazy {
+    val sz = 256
+    val bmp = android.graphics.Bitmap.createBitmap(sz, sz, android.graphics.Bitmap.Config.ARGB_8888)
+    val rng = java.util.Random(42L)
+    val px = IntArray(sz * sz) {
+        android.graphics.Color.argb(rng.nextInt(55).coerceIn(0, 255), 255, 255, 255)
+    }
+    bmp.setPixels(px, 0, sz, 0, 0, sz, sz)
+    ShaderBrush(
+        android.graphics.BitmapShader(
+            bmp,
+            android.graphics.Shader.TileMode.REPEAT,
+            android.graphics.Shader.TileMode.REPEAT,
+        )
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(navController: BeamNavController, vm: BatteryViewModel = viewModel()) {
@@ -215,26 +236,7 @@ fun MainScreen(navController: BeamNavController, vm: BatteryViewModel = viewMode
         }
     }
 
-    val noiseBitmap = remember {
-        val sz = 256
-        val bmp = android.graphics.Bitmap.createBitmap(sz, sz, android.graphics.Bitmap.Config.ARGB_8888)
-        val rng = java.util.Random(42L)
-        val px = IntArray(sz * sz) {
-            android.graphics.Color.argb(rng.nextInt(55).coerceIn(0, 255), 255, 255, 255)
-        }
-        bmp.setPixels(px, 0, sz, 0, 0, sz, sz)
-        bmp
-    }
-
-    val grainBrush = remember(noiseBitmap) {
-        ShaderBrush(
-            android.graphics.BitmapShader(
-                noiseBitmap,
-                android.graphics.Shader.TileMode.REPEAT,
-                android.graphics.Shader.TileMode.REPEAT,
-            )
-        )
-    }
+    val grainBrush = sharedGrainBrush
 
     // Single morphing glow: 3 slow, coprime, linear-eased phases drift overlapping metaball
     // lobes so they read as one amorphous shape (no separately trackable orbs), plus a slow breath.

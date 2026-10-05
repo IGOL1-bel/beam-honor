@@ -51,6 +51,12 @@
     <string name="currentScalar">Виправлення масштабу потужності</string>
     <string name="currentScalarDesc">Коли не підключено, змініть цей масштаб, доки \u0022Потужність\u0022 не стане більшою за 0 Вт, але меншою за приблизно 10 Вт.</string>
     <string name="customScalar">Власний множник (будь-яке додатне число)</string>
+    <string name="chargerInputMetrics">Показники на вході зарядки</string>
+    <string name="chargerInputMetricsDesc">Під час заряджання показувати напругу й струм, виміряні на вході зарядки, а не на батареї. Якщо телефон їх не надає, показуються значення батареї.</string>
+    <string name="chargerSourceFound">Джерело: %1$s</string>
+    <string name="chargerSourceMissing">Показники зарядки недоступні (підключіть зарядку), показано значення батареї</string>
+    <string name="runOnlyWhileCharging">Працювати лише під час заряджання</string>
+    <string name="runOnlyWhileChargingDesc">Показувати сповіщення лише коли підключено зарядку: запускається під час підключення й зупиняється під час відключення. Потрібен необмежений режим роботи батареї для Beam.</string>
     <string name="invertCurrent">Інвертувати індикатор заряджання</string>
     <string name="invertCurrentDesc">Коли не підключено, увімкніть цей перемикач, якщо \u0022Заряджається\u0022 показує \u0022так\u0022.</string>
     <string name="useFahrenheit">Фаренгейт</string>

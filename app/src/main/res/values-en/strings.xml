@@ -52,6 +52,12 @@
     <string name="currentScalar">Power Scalar Workaround</string>
     <string name="currentScalarDesc">When not plugged in, change this scalar until \u0022Power\u0022 is greater than 0W, but less than about 10W.</string>
     <string name="customScalar">Custom scalar (any positive number)</string>
+    <string name="chargerInputMetrics">Charger input readings</string>
+    <string name="chargerInputMetricsDesc">While charging, show the voltage and current measured at the charger input instead of at the battery. Falls back to battery values if the phone does not expose them.</string>
+    <string name="chargerSourceFound">Reading from %1$s</string>
+    <string name="chargerSourceMissing">No charger readings available (connect a charger) - showing battery values</string>
+    <string name="runOnlyWhileCharging">Run only while charging</string>
+    <string name="runOnlyWhileChargingDesc">Show the notification only while a charger is connected: it starts on connect and stops on disconnect. Requires unrestricted battery usage for Beam.</string>
     <string name="invertCurrent">Invert Charging Indicator</string>
     <string name="invertCurrentDesc">When not plugged in, enable this toggle if \u0022Charging\u0022 says \u0022yes\u0022.</string>
     <string name="useFahrenheit">Fahrenheit</string>

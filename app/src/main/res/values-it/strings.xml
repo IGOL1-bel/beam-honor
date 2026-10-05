@@ -51,6 +51,12 @@
     <string name="currentScalar">Soluzione scala potenza</string>
     <string name="currentScalarDesc">Quando non è in carica, modifica questa scala finché la \u0022Potenza\u0022 non è maggiore di 0W ma minore di circa 10W.</string>
     <string name="customScalar">Moltiplicatore personalizzato (qualsiasi numero positivo)</string>
+    <string name="chargerInputMetrics">Letture all\'ingresso del caricatore</string>
+    <string name="chargerInputMetricsDesc">Durante la ricarica mostra tensione e corrente misurate all\'ingresso del caricatore invece che sulla batteria. Se il telefono non le fornisce, vengono mostrati i valori della batteria.</string>
+    <string name="chargerSourceFound">Origine: %1$s</string>
+    <string name="chargerSourceMissing">Nessuna lettura del caricatore (collega un caricatore); mostrati i valori della batteria</string>
+    <string name="runOnlyWhileCharging">Esegui solo in carica</string>
+    <string name="runOnlyWhileChargingDesc">Mostra la notifica solo con il caricatore collegato: parte al collegamento e si ferma allo scollegamento. Richiede l\'uso della batteria senza restrizioni per Beam.</string>
     <string name="invertCurrent">Inverti indicatore di carica</string>
     <string name="invertCurrentDesc">Quando non è in carica, attiva questa opzione se \u0022In carica\u0022 mostra \u0022sì\u0022.</string>
     <string name="useFahrenheit">Fahrenheit</string>

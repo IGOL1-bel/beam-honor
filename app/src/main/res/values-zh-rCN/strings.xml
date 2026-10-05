@@ -51,6 +51,12 @@
     <string name="currentScalar">功率系数</string>
     <string name="currentScalarDesc">未插电时，调整此系数直到 \u0022功率\u0022 大于 0W 但小于约 10W。</string>
     <string name="customScalar">自定义系数（任意正数）</string>
+    <string name="chargerInputMetrics">充电器输入读数</string>
+    <string name="chargerInputMetricsDesc">充电时显示充电器输入端测得的电压和电流，而不是电池端的数值。若手机不提供这些数据，则显示电池数值。</string>
+    <string name="chargerSourceFound">来源：%1$s</string>
+    <string name="chargerSourceMissing">没有可用的充电器读数（请连接充电器），当前显示电池数值</string>
+    <string name="runOnlyWhileCharging">仅在充电时运行</string>
+    <string name="runOnlyWhileChargingDesc">仅在连接充电器时显示通知：连接时启动，断开时停止。需要为 Beam 设置无限制的电池使用。</string>
     <string name="invertCurrent">反转充电指示</string>
     <string name="invertCurrentDesc">未插电时，如果 \u0022充电\u0022 显示为 \u0022是\u0022，请启用此开关。</string>
     <string name="useFahrenheit">华氏度</string>

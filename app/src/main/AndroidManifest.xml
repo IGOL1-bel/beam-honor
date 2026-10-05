@@ -44,6 +44,10 @@
                 android:value="Continuously shows live battery power in a status bar notification" />
         </service>
         <service
+            android:name=".ChargeJobService"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:exported="false" />
+        <service
             android:name=".BeamNotificationTileService"
             android:icon="@drawable/ico_tile"
             android:label="@string/app_name"

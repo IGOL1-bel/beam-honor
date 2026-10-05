@@ -16,6 +16,12 @@ class BatterySnapshot(
     val pluggedRaw: Long?,
     val tempRaw: Long?,
     val voltsRaw: Long?,
+
+    // Charger side: voltage at the charging controller (mV) and input current magnitude (raw
+    // node unit, scaled by currentScalar like the battery current). Both null when the device
+    // does not expose them or the option is off.
+    private val chargerMillivolts: Double? = null,
+    private val chargerCurrentRaw: Double? = null,
 ) {
     private fun fromMicros(v: Double?) : Double? {
         return v?.div(1_000_000.0)
@@ -25,20 +31,37 @@ class BatterySnapshot(
         return v?.div(1_000.0)
     }
 
-    val microamps : Double? get() {
+    // While a charger is plugged in and its input is readable, the displayed voltage, current
+    // and power describe the charger input. Everything about the battery's own state (stored
+    // energy, time to full) keeps using the battery-side values below.
+    private val chargerActive : Boolean get() =
+        plugged == true && chargerMillivolts != null && chargerCurrentRaw != null
+
+    private val batteryMicroamps : Double? get() {
         val sign = if (invertCurrent) 1.0 else -1.0
         return currentRaw?.times(currentScalar)?.times(sign)
     }
+    private val batteryMillivolts : Double? get() = voltsRaw?.toDouble()
+    private val batteryVolts : Double? get() = fromMillis(batteryMillivolts)
+    private val batteryWatts : Double? get() = fromMicros(batteryMicroamps).times(batteryVolts)
+
+    // Same sign convention as the battery: negative means power flowing into the device. The
+    // charger input is always inbound, so its sign is fixed rather than device-dependent.
+    val microamps : Double? get() =
+        if (chargerActive) chargerCurrentRaw?.let { -(it * currentScalar) } else batteryMicroamps
     val milliamps : Double? get() = microamps?.div(1_000.0)
     val amps : Double? get() = fromMicros(microamps)
 
-    val millivolts : Double? get() = voltsRaw?.toDouble()
+    val millivolts : Double? get() = if (chargerActive) chargerMillivolts else batteryMillivolts
     val volts : Double? get() = fromMillis(millivolts)
 
     val watts : Double? get() = amps.times(volts)
 
+    // True when the figures above come from the charger input rather than the battery.
+    val fromCharger : Boolean get() = chargerActive
+
     val energyAmpHours : Double? get() = fromMicros(energyRaw?.toDouble())
-    val energyWattHours : Double? get() = volts?.times(energyAmpHours)
+    val energyWattHours : Double? get() = batteryVolts?.times(energyAmpHours)
 
     val levelPercent : Double? get() = level?.times(100.0)
 
@@ -63,7 +86,7 @@ class BatterySnapshot(
         if (isChargingRaw)
             return true
 
-        val ma = milliamps
+        val ma = batteryMicroamps?.div(1_000.0)
         return ma != null && ma < 0.0
     }
 
@@ -85,7 +108,9 @@ class BatterySnapshot(
             // Whether the current is reported positive or negative while charging depends
             // on the device and on the invertCurrent workaround, so only its magnitude is
             // usable here; the charging check above has already established the direction.
-            val chargePower = watts?.let { kotlin.math.abs(it) }
+            // Battery-side power on purpose: charger input power includes conversion losses and
+            // would make the estimate too short.
+            val chargePower = batteryWatts?.let { kotlin.math.abs(it) }
 
             // Below ~1% the capacity extrapolation divides by a near-zero level and yields
             // Infinity/NaN, and a zero charge counter yields a bogus 0s. Give up in both

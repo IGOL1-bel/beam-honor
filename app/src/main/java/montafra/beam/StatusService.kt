@@ -102,6 +102,12 @@ class StatusService : Service() {
     private var wasPlugged: Boolean? = null
     private var stateRestored = false
     private var notificationEnabled = true
+    // "Run only while charging": the notification and service live only while a charger is
+    // connected. chargeOnlyIdle is true from the moment the service has dropped its notification
+    // on unplug until it is brought back (it can outlive the unplug while the UI is bound to it).
+    private var runOnlyWhileCharging = false
+    private var chargeOnlyIdle = false
+    private var startHandled = false
     private var useFahrenheit = false
     private var initialized = false
     private lateinit var msgReceiver: MsgReceiver
@@ -130,9 +136,13 @@ class StatusService : Service() {
                     // paused then), so alarms still fire. Only refresh the snapshot + check
                     // thresholds here; the status notification is left untouched. Skipped
                     // entirely when no alarm is enabled, so non-users don't wake on every change.
-                    if (alarms.any { it.enabled }) {
+                    // The same refresh also drives "run only while charging", which has to notice
+                    // the unplug even with the screen off and the poll paused.
+                    val alarmsOn = alarms.any { it.enabled }
+                    if (runOnlyWhileCharging || alarmsOn) {
                         snapshot = battery.snapshot()
-                        checkAlarms()
+                        enforceChargeOnly()
+                        if (alarmsOn) checkAlarms()
                     }
                 }
                 Intent.ACTION_POWER_CONNECTED -> {
@@ -184,6 +194,8 @@ class StatusService : Service() {
         if (!notificationEnabled) stopForeground(STOP_FOREGROUND_REMOVE)
         battery.currentScalar = settings.getFloat("currentScalar", 1f).toDouble()
         battery.invertCurrent = settings.getBoolean("invertCurrent", false)
+        battery.useCharger = settings.getBoolean("chargerMetrics", true)
+        runOnlyWhileCharging = settings.getBoolean(runOnlyWhileChargingKey, false)
         useFahrenheit = settings.getBoolean("useFahrenheit", false)
         indicatorEntries = settings.getStringSet("indicatorEntries", null) ?: emptySet()
         notificationIndicator = settings.getString("notificationIndicator", "W") ?: "W"
@@ -495,9 +507,19 @@ class StatusService : Service() {
             try {
                 startForeground(noteId, buildNotification())
             } catch (e: Exception) {
-                error("Failed to foreground StatusService: ${e.message}")
+                // Not kotlin.error(), which throws: a refused foreground start must not crash.
+                Log.e(this::class.java.name, "Failed to foreground StatusService: ${e.message}")
             }
         }
+
+        // Only from here on may "run only while charging" shut the service down: stopping it
+        // before the start command that startForegroundService() promised a startForeground()
+        // for would crash the app. Re-evaluate from scratch, since an instance that outlived an
+        // earlier unplug (kept alive by the bound UI) has just been foregrounded again above.
+        startHandled = true
+        chargeOnlyIdle = false
+        snapshot = battery.snapshot()
+        enforceChargeOnly()
 
         return START_STICKY
     }
@@ -640,9 +662,45 @@ class StatusService : Service() {
         // had just opened and leave it closed until the next tick.
         syncPlugState()
         reconcileScreenTime()
-        if (notificationEnabled) noteMgr.notify(noteId, buildNotification())
+        enforceChargeOnly()
+        if (notificationEnabled && !chargeOnlyIdle) noteMgr.notify(noteId, buildNotification())
         checkAlarms()
         updateData()
+    }
+
+    /**
+     * Applies "run only while charging": drops the notification and stops the service once
+     * unplugged, arming a job that starts it again when a charger returns, and restores the
+     * notification when charging resumes or the option is switched off.
+     *
+     * startForegroundService() callers all expect a startForeground() in return, so this never
+     * refuses a start: onStartCommand always foregrounds first and only then lands here.
+     */
+    private fun enforceChargeOnly() {
+        if (!startHandled) return
+        val plugged = snapshot.plugged
+        if (runOnlyWhileCharging && plugged == null) return // no plug state: not an edge
+        val wantIdle = runOnlyWhileCharging && plugged == false
+        if (wantIdle == chargeOnlyIdle) return
+        chargeOnlyIdle = wantIdle
+
+        if (wantIdle) {
+            debug("unplugged: stopping until a charger is connected")
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            ChargeTrigger.schedule(this)
+            // A no-op while the UI is bound, which keeps its data flowing; the process goes with
+            // the last client otherwise.
+            stopSelf()
+        } else {
+            if (!runOnlyWhileCharging) ChargeTrigger.cancel(this)
+            if (notificationEnabled) {
+                try {
+                    startForeground(noteId, buildNotification())
+                } catch (e: Exception) {
+                    debug("Failed to foreground StatusService: ${e.message}")
+                }
+            }
+        }
     }
 
     private fun checkAlarms() {

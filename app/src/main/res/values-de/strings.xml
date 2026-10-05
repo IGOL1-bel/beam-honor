@@ -51,6 +51,12 @@
     <string name="currentScalar">Leistungsskala-Workaround</string>
     <string name="currentScalarDesc">Wenn nicht angeschlossen, ändere diesen Skalar, bis \u0022Leistung\u0022 größer als 0W, aber kleiner als etwa 10W ist.</string>
     <string name="customScalar">Eigener Faktor (beliebige positive Zahl)</string>
+    <string name="chargerInputMetrics">Messwerte am Ladeeingang</string>
+    <string name="chargerInputMetricsDesc">Zeigt beim Laden Spannung und Strom am Ladeeingang statt am Akku an. Stellt das Gerät sie nicht bereit, werden die Akkuwerte angezeigt.</string>
+    <string name="chargerSourceFound">Quelle: %1$s</string>
+    <string name="chargerSourceMissing">Keine Ladewerte verfügbar (Ladegerät anschließen) – Akkuwerte werden angezeigt</string>
+    <string name="runOnlyWhileCharging">Nur beim Laden ausführen</string>
+    <string name="runOnlyWhileChargingDesc">Benachrichtigung nur bei angeschlossenem Ladegerät: startet beim Anstecken und endet beim Abziehen. Beam benötigt uneingeschränkte Akkunutzung.</string>
     <string name="invertCurrent">Ladeanzeige umkehren</string>
     <string name="invertCurrentDesc">Wenn nicht angeschlossen, aktiviere diese Option, falls \u0022Lädt\u0022 \u0022ja\u0022 anzeigt.</string>
     <string name="useFahrenheit">Fahrenheit</string>

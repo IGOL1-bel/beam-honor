@@ -37,6 +37,12 @@ class BootReceiver : BroadcastReceiver() {
             return
         }
 
+        if (prefs.getBoolean(runOnlyWhileChargingKey, false) && !ChargeTrigger.isPlugged(context)) {
+            debug("run-only-while-charging and unplugged; waiting for a charger")
+            ChargeTrigger.schedule(context)
+            return
+        }
+
         debug("starting status service...")
         try {
             context.startForegroundService(Intent(context, StatusService::class.java))

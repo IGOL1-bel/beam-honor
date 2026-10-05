@@ -87,7 +87,12 @@ class MainActivity : ComponentActivity() {
 
     private fun startStatusService() {
         val intent = Intent(this, StatusService::class.java)
-        if (getSharedPreferences(settingsName, MODE_PRIVATE).getBoolean("notificationEnabled", true)) {
+        val prefs = getSharedPreferences(settingsName, MODE_PRIVATE)
+        if (prefs.getBoolean(runOnlyWhileChargingKey, false) && !ChargeTrigger.isPlugged(this)) {
+            // No notification without a charger; the bind below still feeds the open UI, and the
+            // job starts the service as soon as one is connected.
+            ChargeTrigger.schedule(this)
+        } else if (prefs.getBoolean("notificationEnabled", true)) {
             startForegroundService(intent)
         }
         if (!bound) {
