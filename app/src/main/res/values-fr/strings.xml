@@ -50,6 +50,7 @@
     <string name="cardSpacingDesc">Densité des espaces et des coins entre les cartes</string>
     <string name="currentScalar">Solution d\'échelle de puissance</string>
     <string name="currentScalarDesc">Lorsque l\'appareil n\'est pas branché, modifie cette échelle jusqu\'à ce que \u0022Puissance\u0022 soit supérieure à 0W, mais inférieure à environ 10W.</string>
+    <string name="customScalar">Multiplicateur personnalisé (tout nombre positif)</string>
     <string name="invertCurrent">Inverser l\'indicateur de charge</string>
     <string name="invertCurrentDesc">Lorsque l\'appareil n\'est pas branché, active cette option si \u0022En charge\u0022 affiche \u0022oui\u0022.</string>
     <string name="useFahrenheit">Fahrenheit</string>

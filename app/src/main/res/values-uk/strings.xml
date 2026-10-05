@@ -50,6 +50,7 @@
     <string name="cardSpacingDesc">Щільність відступів і заокруглень між картками</string>
     <string name="currentScalar">Виправлення масштабу потужності</string>
     <string name="currentScalarDesc">Коли не підключено, змініть цей масштаб, доки \u0022Потужність\u0022 не стане більшою за 0 Вт, але меншою за приблизно 10 Вт.</string>
+    <string name="customScalar">Власний множник (будь-яке додатне число)</string>
     <string name="invertCurrent">Інвертувати індикатор заряджання</string>
     <string name="invertCurrentDesc">Коли не підключено, увімкніть цей перемикач, якщо \u0022Заряджається\u0022 показує \u0022так\u0022.</string>
     <string name="useFahrenheit">Фаренгейт</string>

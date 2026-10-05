@@ -50,6 +50,7 @@
     <string name="cardSpacingDesc">卡片之间的间距与圆角密度</string>
     <string name="currentScalar">功率系数</string>
     <string name="currentScalarDesc">未插电时，调整此系数直到 \u0022功率\u0022 大于 0W 但小于约 10W。</string>
+    <string name="customScalar">自定义系数（任意正数）</string>
     <string name="invertCurrent">反转充电指示</string>
     <string name="invertCurrentDesc">未插电时，如果 \u0022充电\u0022 显示为 \u0022是\u0022，请启用此开关。</string>
     <string name="useFahrenheit">华氏度</string>

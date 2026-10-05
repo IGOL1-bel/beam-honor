@@ -36,6 +36,22 @@ object VendorBatteryHints {
         component("com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity"),
     )
 
+    // Honor split from Huawei in 2020 and, from MagicOS 7/8 on, ships its own phone manager under
+    // com.hihonor.* (Magic 7 Pro, MagicOS 9/10 included). The class names mirror the old Huawei
+    // ones but vary between builds, so each is blind-tried. The standard Android battery
+    // optimisation list comes last: it exists on every MagicOS build and at least lets the user
+    // pick Beam from the list, even when no vendor activity can be opened from a third-party app.
+    private val honorIntents = listOf(
+        component("com.hihonor.systemmanager", "com.hihonor.systemmanager.startupmgr.ui.StartupNormalAppListActivity"),
+        component("com.hihonor.systemmanager", "com.hihonor.systemmanager.appcontrol.activity.StartupAppControlActivity"),
+        component("com.hihonor.systemmanager", "com.hihonor.systemmanager.optimize.process.ProtectActivity"),
+        component("com.hihonor.systemmanager", "com.hihonor.systemmanager.power.ui.HwPowerManagerActivity"),
+        // Legacy (MagicUI 4-6, still Huawei-derived)
+        component("com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"),
+        component("com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity"),
+        Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
+    )
+
     private val vendors = listOf(
         VendorBatterySettings(
             matchKeys = listOf("xiaomi", "redmi", "poco"),
@@ -58,10 +74,10 @@ object VendorBatteryHints {
         ),
         VendorBatterySettings(
             matchKeys = listOf("honor"),
-            vendorLabel = "Magic UI",
-            dontKillSlug = "huawei",
+            vendorLabel = "MagicOS",
+            dontKillSlug = "honor",
             promptOnFirstLaunch = true,
-            intents = { huaweiIntents },
+            intents = { honorIntents },
         ),
         VendorBatterySettings(
             matchKeys = listOf("oppo", "realme"),

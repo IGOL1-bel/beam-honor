@@ -66,6 +66,10 @@ Beam can only measure power flowing into or out of the battery management system
 
 Beam needs notification permissions on newer Android phones. Open the app once and grant permissions when prompted, or enable them manually in Android app settings. Note that Android can silently revoke these permissions, so you may need to re-enable them periodically.
 
+**Honor (MagicOS 9/10, e.g. Magic 7 Pro): the notification disappears or stops updating**
+
+MagicOS stops background apps aggressively. Open Beam → Settings → Workarounds → "Background restrictions", or go to system Settings → Apps → App launch → Beam, switch to manual management and enable "Auto-launch", "Secondary launch" and "Run in background". Also set Battery → Beam → "Unrestricted" and lock the app in the recents screen.
+
 ## Support Me
 
 **Bitcoin (BTC):** 

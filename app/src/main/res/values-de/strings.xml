@@ -50,6 +50,7 @@
     <string name="cardSpacingDesc">Dichte der Abstände und Ecken zwischen Karten</string>
     <string name="currentScalar">Leistungsskala-Workaround</string>
     <string name="currentScalarDesc">Wenn nicht angeschlossen, ändere diesen Skalar, bis \u0022Leistung\u0022 größer als 0W, aber kleiner als etwa 10W ist.</string>
+    <string name="customScalar">Eigener Faktor (beliebige positive Zahl)</string>
     <string name="invertCurrent">Ladeanzeige umkehren</string>
     <string name="invertCurrentDesc">Wenn nicht angeschlossen, aktiviere diese Option, falls \u0022Lädt\u0022 \u0022ja\u0022 anzeigt.</string>
     <string name="useFahrenheit">Fahrenheit</string>

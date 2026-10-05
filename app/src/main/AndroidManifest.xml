@@ -37,8 +37,12 @@
         <service
             android:name=".StatusService"
             android:process=":batteryStatus"
-            android:foregroundServiceType="specialUse"
-        />
+            android:foregroundServiceType="specialUse">
+            <!-- Required for specialUse on Android 14+ (MagicOS 9/10 on Magic 7 Pro). -->
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Continuously shows live battery power in a status bar notification" />
+        </service>
         <service
             android:name=".BeamNotificationTileService"
             android:icon="@drawable/ico_tile"

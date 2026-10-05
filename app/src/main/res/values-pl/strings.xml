@@ -50,6 +50,7 @@
     <string name="cardSpacingDesc">Gęstość odstępów i zaokrągleń między kartami</string>
     <string name="currentScalar">Korekta skali mocy</string>
     <string name="currentScalarDesc">Gdy telefon nie jest podłączony do ładowarki, zmieniaj tę wartość, aż „Moc” będzie większa niż 0W, ale mniejsza niż około 10W.</string>
+    <string name="customScalar">Własny mnożnik (dowolna liczba dodatnia)</string>
     <string name="invertCurrent">Odwróć wskaźnik ładowania</string>
     <string name="invertCurrentDesc">Gdy telefon nie jest podłączony do ładowarki, włącz tę opcję, jeśli „Ładowanie” pokazuje „tak”.</string>
     <string name="useFahrenheit">Fahrenheit</string>

@@ -50,6 +50,7 @@
     <string name="cardSpacingDesc">Densidade dos espaços e cantos entre os cartões</string>
     <string name="currentScalar">Ajuste de escala de potência</string>
     <string name="currentScalarDesc">Quando desconectado da carga, ajuste este valor até que \u0022Potência\u0022 seja maior que 0W, mas menor que cerca de 10W.</string>
+    <string name="customScalar">Multiplicador personalizado (qualquer número positivo)</string>
     <string name="invertCurrent">Inverter indicador de carga</string>
     <string name="invertCurrentDesc">Quando desconectado da carga, ative esta opção se \u0022Carregando\u0022 exibir \u0022sim\u0022.</string>
     <string name="useFahrenheit">Fahrenheit</string>

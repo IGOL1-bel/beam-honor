@@ -50,6 +50,7 @@
     <string name="cardSpacingDesc">Densidad de los espacios y las esquinas entre tarjetas</string>
     <string name="currentScalar">Escala de potencia alternativa</string>
     <string name="currentScalarDesc">Cuando no esté enchufado, cambie esta unidad de escala hasta que \u0022Potencia\u0022 sea mayor de 0W, pero menor de 10W.</string>
+    <string name="customScalar">Multiplicador personalizado (cualquier número positivo)</string>
     <string name="invertCurrent">Invertir indicador de carga</string>
     <string name="invertCurrentDesc">Cuando no esté enchufado, activar si \u0022Cargando\u0022 dice \u0022Sí\u0022.</string>
     <string name="useFahrenheit">Fahrenheit</string>

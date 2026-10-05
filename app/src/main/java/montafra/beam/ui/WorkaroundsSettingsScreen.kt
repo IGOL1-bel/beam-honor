@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.Slider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -22,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -62,6 +65,10 @@ import montafra.beam.ui.theme.cardShapeSingle
 import montafra.beam.ui.theme.cardShapeTop
 import kotlin.math.roundToInt
 
+// Plain decimal text for a scalar ("0.001", "1", "1000"), never scientific notation.
+private fun formatScalar(v: Float): String =
+    java.math.BigDecimal(v.toString()).stripTrailingZeros().toPlainString()
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewModel = viewModel()) {
@@ -89,6 +96,7 @@ fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewM
     val pollLabels = listOf("1.25s", "1.75s", "2.5s", "3.5s", "5s", "7.5s", "10s")
 
     var currentScalar by remember { mutableFloatStateOf(prefs.getFloat("currentScalar", 1f)) }
+    var scalarText by remember { mutableStateOf(formatScalar(currentScalar)) }
     var invertCurrent by remember { mutableStateOf(prefs.getBoolean("invertCurrent", false)) }
     var useFahrenheit by remember { mutableStateOf(prefs.getBoolean("useFahrenheit", false)) }
     var pollIndex by remember {
@@ -133,6 +141,7 @@ fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewM
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 currentScalar = scalarValues[i]
+                                scalarText = formatScalar(currentScalar)
                                 saveWorkarounds()
                             },
                             shape = SegmentedButtonDefaults.itemShape(i, scalarOptions.size),
@@ -140,6 +149,27 @@ fun WorkaroundsSettingsScreen(navController: BeamNavController, vm: BatteryViewM
                         )
                     }
                 }
+                Spacer(Modifier.height(8.dp))
+                // Manual entry for devices whose scale is none of the presets. Only a valid
+                // positive number is saved; anything else just flags the field and keeps the last
+                // good value, so a half-typed "0." never reaches the service.
+                OutlinedTextField(
+                    value = scalarText,
+                    onValueChange = { input ->
+                        val cleaned = input.filter { it.isDigit() || it == '.' || it == ',' }
+                        scalarText = cleaned
+                        val parsed = cleaned.replace(',', '.').toFloatOrNull()
+                        if (parsed != null && parsed.isFinite() && parsed > 0f) {
+                            currentScalar = parsed
+                            saveWorkarounds()
+                        }
+                    },
+                    label = { Text(stringResource(R.string.customScalar)) },
+                    singleLine = true,
+                    isError = scalarText.replace(',', '.').toFloatOrNull()?.let { it <= 0f || !it.isFinite() } ?: true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
             item {
                 BeamCard(

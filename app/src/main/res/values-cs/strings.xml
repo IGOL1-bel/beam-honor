@@ -50,6 +50,7 @@
     <string name="cardSpacingDesc">Hustota mezer a zaoblení mezi kartami</string>
     <string name="currentScalar">Řešení škálování výkonu</string>
     <string name="currentScalarDesc">Když není připojeno k napájení, měňte tento násobitel, dokud nebude hodnota Výkon větší než 0 W, ale menší než přibližně 10 W.</string>
+    <string name="customScalar">Vlastní násobitel (libovolné kladné číslo)</string>
     <string name="invertCurrent">Obrátit indikátor nabíjení</string>
     <string name="invertCurrentDesc">Když není připojeno k napájení, zapněte tuto možnost, pokud se u položky Nabíjení zobrazuje ano.</string>
     <string name="useFahrenheit">Fahrenheit</string>

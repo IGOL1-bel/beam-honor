@@ -50,6 +50,7 @@
     <string name="cardSpacingDesc">Плотность отступов и скругления между карточками</string>
     <string name="currentScalar">Множитель мощности</string>
     <string name="currentScalarDesc">При отключённой зарядке, изменяйте этот множитель, пока значение \u0022Мощность\u0022 не станет больше 0 Вт, но меньше 10 Вт.</string>
+    <string name="customScalar">Свой множитель (любое положительное число)</string>
     <string name="invertCurrent">Инвертировать значение силы тока при зарядке</string>
     <string name="invertCurrentDesc">Переключите, если при отключённой зарядке в поле \u0022Заряжается\u0022 выводится \u0022да\u0022.</string>
     <string name="useFahrenheit">Фаренгейт</string>

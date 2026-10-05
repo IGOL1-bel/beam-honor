@@ -51,6 +51,7 @@
     <string name="cardSpacingDesc">Density of the gaps and corners between cards</string>
     <string name="currentScalar">Power Scalar Workaround</string>
     <string name="currentScalarDesc">When not plugged in, change this scalar until \u0022Power\u0022 is greater than 0W, but less than about 10W.</string>
+    <string name="customScalar">Custom scalar (any positive number)</string>
     <string name="invertCurrent">Invert Charging Indicator</string>
     <string name="invertCurrentDesc">When not plugged in, enable this toggle if \u0022Charging\u0022 says \u0022yes\u0022.</string>
     <string name="useFahrenheit">Fahrenheit</string>

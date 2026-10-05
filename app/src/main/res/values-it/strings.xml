@@ -50,6 +50,7 @@
     <string name="cardSpacingDesc">Densità degli spazi e degli angoli tra le schede</string>
     <string name="currentScalar">Soluzione scala potenza</string>
     <string name="currentScalarDesc">Quando non è in carica, modifica questa scala finché la \u0022Potenza\u0022 non è maggiore di 0W ma minore di circa 10W.</string>
+    <string name="customScalar">Moltiplicatore personalizzato (qualsiasi numero positivo)</string>
     <string name="invertCurrent">Inverti indicatore di carica</string>
     <string name="invertCurrentDesc">Quando non è in carica, attiva questa opzione se \u0022In carica\u0022 mostra \u0022sì\u0022.</string>
     <string name="useFahrenheit">Fahrenheit</string>
